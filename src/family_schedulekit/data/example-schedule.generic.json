@@ -1,0 +1,36 @@
+{
+  "parties": {
+    "mom": "ParentA",
+    "dad": "ParentB",
+    "children": ["Child1", "Child2"]
+  },
+  "calendar_week_system": "ISO8601",
+  "handoff": {
+    "weekdays": "school",
+    "sunday_dad_to_mom": "by_1pm"
+  },
+  "rules": {
+    "weekdays": {
+      "monday": "mom",
+      "tuesday": "dad",
+      "wednesday": "mom",
+      "thursday": "dad"
+    },
+    "weekends": {
+      "odd_weeks": {
+        "friday": "mom",
+        "saturday": "mom",
+        "sunday": "mom"
+      },
+      "even_weeks": {
+        "friday": "dad",
+        "saturday": "dad",
+        "sunday": {
+          "cw_mod4_equals_0": "dad",
+          "otherwise": "mom"
+        }
+      }
+    }
+  },
+  "holidays": {}
+}

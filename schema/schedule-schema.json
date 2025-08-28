@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Family Schedule Schema",
+  "type": "object",
+  "properties": {
+    "parties": {
+      "type": "object",
+      "properties": {
+        "mom": { "type": "string" },
+        "dad": { "type": "string" },
+        "children": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["mom", "dad", "children"]
+    },
+    "calendar_week_system": { "enum": ["ISO8601"] }
+  },
+  "required": ["parties", "calendar_week_system", "rules"]
+}

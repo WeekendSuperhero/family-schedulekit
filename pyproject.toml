@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "family-schedulekit"
+version = "0.1.0"
+description = "AI-friendly schema + utilities for co-parenting / custody schedules (ISO week based)."
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [{ name = "Weekend Superhero LLC" }]
+license = { text = "MIT" }
+keywords = ["custody", "co-parenting", "schedule", "iso8601", "calendar", "ai"]
+dependencies = ["pydantic>=2.7,<3.0"]
+
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Utilities",
+  "Typing :: Typed"
+]
+
+[project.urls]
+Homepage = "https://github.com/weekendsuperhero/family-schedulekit"
+Repository = "https://github.com/weekendsuperhero/family-schedulekit"
+Issues = "https://github.com/weekendsuperhero/family-schedulekit/issues"
+
+[project.scripts]
+family-schedulekit = "family_schedulekit.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/family_schedulekit"]
+
+[tool.hatch.build]
+include = [
+  "README.md",
+  "LICENSE",
+  "schema/**",
+  "examples/**",
+  "src/**",
+  "tests/**",
+  "pyproject.toml"
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff>=0.5.0",
+  "pytest>=8.2",
+  "mypy>=1.10",
+  "build>=1.2.1"
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+lint.select = ["E", "F", "W", "I", "UP"]
+lint.ignore = ["E203"]
+
+[tool.mypy]
+python_version = "3.13"
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+strict = false
+
+[tool.pytest.ini_options]
+addopts = "-q"
+pythonpath = ["src"]
