@@ -18,9 +18,7 @@ class Weekday(IntEnum):
         return Weekday(i)
 
     def slug(self) -> str:
-        return ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"][
-            int(self)
-        ]
+        return ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"][int(self)]
 
 
 Guardian = Literal["mom", "dad"]

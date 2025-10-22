@@ -62,9 +62,7 @@ def render_schedule_image(
         raise ValueError("No schedule records to render.")
 
     if Image is None or ImageDraw is None or ImageFont is None:
-        raise RuntimeError(
-            "Pillow is required for image exports. Install with `pip install family-schedulekit[visual]`."
-        )
+        raise RuntimeError("Pillow is required for image exports. Install with `pip install family-schedulekit[visual]`.")
 
     colors = _normalize_palette(palette)
 

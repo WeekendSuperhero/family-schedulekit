@@ -63,19 +63,13 @@ def generate_ai_context(
 def _generate_rules_summary(cfg: ScheduleConfigModel) -> Dict[str, str]:
     """Generate human-readable rules summary."""
     return {
-        "weekday_pattern": (
-            f"Monday: {cfg.parties.mom}, Tuesday: {cfg.parties.dad}, "
-            f"Wednesday: {cfg.parties.mom}, Thursday: {cfg.parties.dad}"
-        ),
+        "weekday_pattern": (f"Monday: {cfg.parties.mom}, Tuesday: {cfg.parties.dad}, Wednesday: {cfg.parties.mom}, Thursday: {cfg.parties.dad}"),
         "weekend_odd_weeks": f"Odd ISO weeks (CW1, CW3, CW5...): Full weekend with {cfg.parties.mom}",
         "weekend_even_weeks": (
             f"Even ISO weeks (CW2, CW4, CW6...): Friday-Saturday with {cfg.parties.dad}, "
             f"Sunday varies (CW%4==0: {cfg.parties.dad} until 1pm, else: {cfg.parties.mom})"
         ),
-        "special_sunday_rule": (
-            "On even weeks where CW mod 4 equals 0 (CW4, CW8, CW12...), "
-            f"{cfg.parties.dad} has Sunday but must return children by 1 PM"
-        ),
+        "special_sunday_rule": (f"On even weeks where CW mod 4 equals 0 (CW4, CW8, CW12...), {cfg.parties.dad} has Sunday but must return children by 1 PM"),
     }
 
 

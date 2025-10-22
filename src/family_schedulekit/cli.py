@@ -31,11 +31,7 @@ def _cmd_init(sp):
 
 def _cmd_resolve(sp):
     cfg_path = Path(sp.config)
-    cfg = (
-        ScheduleConfigModel.model_validate_json(cfg_path.read_text())
-        if cfg_path.exists()
-        else load_default_config()
-    )
+    cfg = ScheduleConfigModel.model_validate_json(cfg_path.read_text()) if cfg_path.exists() else load_default_config()
     if sp.week_of:
         anchor = datetime.strptime(sp.week_of, "%Y-%m-%d").date()
         week = resolve_week_of(anchor, cfg)
@@ -44,10 +40,7 @@ def _cmd_resolve(sp):
                 {
                     "calendar_week": iso_week(anchor),
                     "calendar_week_system": cfg.calendar_week_system,
-                    "resolved_schedule": {
-                        k: {"guardian": v["guardian"], "handoff": v["handoff"]}
-                        for k, v in week.items()
-                    },
+                    "resolved_schedule": {k: {"guardian": v["guardian"], "handoff": v["handoff"]} for k, v in week.items()},
                 },
                 indent=2,
             )
@@ -67,11 +60,7 @@ def _cmd_list(sp):
 
 def _cmd_export(sp):
     cfg_path = Path(sp.config)
-    cfg = (
-        ScheduleConfigModel.model_validate_json(cfg_path.read_text())
-        if cfg_path.exists()
-        else load_default_config()
-    )
+    cfg = ScheduleConfigModel.model_validate_json(cfg_path.read_text()) if cfg_path.exists() else load_default_config()
     start = datetime.strptime(sp.start, "%Y-%m-%d").date()
     outdir = Path(sp.outdir)
     fmts = tuple({f.lower() for f in sp.formats})  # unique, normalized
@@ -124,9 +113,7 @@ def main():
         help="Path to config (falls back to packaged default)",
     )
     ap_exp.add_argument("--start", required=True, help="Start date YYYY-MM-DD (Monday recommended)")
-    ap_exp.add_argument(
-        "--weeks", type=int, default=12, help="How many weeks to include (default 12)"
-    )
+    ap_exp.add_argument("--weeks", type=int, default=12, help="How many weeks to include (default 12)")
     ap_exp.add_argument("--outdir", default="out", help="Output directory (default: ./out)")
     ap_exp.add_argument(
         "--formats",
@@ -136,12 +123,8 @@ def main():
     )
     ap_exp.set_defaults(func=_cmd_export)
 
-    ap_ai = sub.add_parser(
-        "ai-context", help="Generate AI-friendly context with schema and examples"
-    )
-    ap_ai.add_argument(
-        "--config", default="schema/example-schedule.json", help="Path to schedule config"
-    )
+    ap_ai = sub.add_parser("ai-context", help="Generate AI-friendly context with schema and examples")
+    ap_ai.add_argument("--config", default="schema/example-schedule.json", help="Path to schedule config")
     ap_ai.add_argument("--date", help="Target date YYYY-MM-DD (default: today)")
     ap_ai.add_argument("--weeks", type=int, default=4, help="Weeks of examples to generate")
     ap_ai.add_argument("--output", help="Output file path (if not specified, prints to stdout)")
