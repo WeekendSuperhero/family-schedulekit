@@ -6,6 +6,7 @@ from .models import ScheduleConfigModel
 from .resolver import resolve_for_date, resolve_week_of, iso_week
 from .resources import load_default_config
 
+
 def generate_ai_context(
     config: Optional[ScheduleConfigModel] = None,
     target_date: Optional[date] = None,
@@ -15,20 +16,20 @@ def generate_ai_context(
 ) -> Dict[str, Any]:
     """
     Generate comprehensive context for AI to understand and work with the custody schedule.
-    
+
     Args:
         config: Schedule configuration (defaults to generic template)
         target_date: Starting date for examples (defaults to today)
         weeks_ahead: How many weeks of examples to generate
         include_examples: Whether to include resolved schedule examples
         include_schema: Whether to include the JSON schema
-    
+
     Returns:
         Dictionary with AI-friendly context including schema, rules, and examples
     """
     cfg = config or load_default_config()
     start_date = target_date or date.today()
-    
+
     context = {
         "system_description": (
             "This is a co-parenting schedule system using ISO 8601 week numbering. "
@@ -45,18 +46,19 @@ def generate_ai_context(
         "rules_summary": _generate_rules_summary(cfg),
         "handoff_rules": _generate_handoff_rules(cfg),
     }
-    
+
     if include_schema:
         context["json_schema"] = _generate_json_schema()
         context["configuration"] = json.loads(cfg.model_dump_json())
-    
+
     if include_examples:
         context["resolved_examples"] = _generate_schedule_examples(cfg, start_date, weeks_ahead)
         context["decision_examples"] = _generate_decision_examples(cfg, start_date)
-    
+
     context["ai_instructions"] = _generate_ai_instructions()
-    
+
     return context
+
 
 def _generate_rules_summary(cfg: ScheduleConfigModel) -> Dict[str, str]:
     """Generate human-readable rules summary."""
@@ -76,6 +78,7 @@ def _generate_rules_summary(cfg: ScheduleConfigModel) -> Dict[str, str]:
         ),
     }
 
+
 def _generate_handoff_rules(cfg: ScheduleConfigModel) -> Dict[str, str]:
     """Generate handoff logistics rules."""
     return {
@@ -85,16 +88,17 @@ def _generate_handoff_rules(cfg: ScheduleConfigModel) -> Dict[str, str]:
         "no_handoff_days": "Saturdays and most Sundays have no handoffs (continuous custody)",
     }
 
+
 def _generate_schedule_examples(cfg: ScheduleConfigModel, start: date, weeks: int) -> List[Dict]:
     """Generate resolved schedule examples for multiple weeks."""
     examples = []
     current = start - timedelta(days=start.weekday())  # Start from Monday
-    
+
     for week_num in range(weeks):
         week_start = current + timedelta(weeks=week_num)
         cw = iso_week(week_start)
         week_schedule = resolve_week_of(week_start, cfg)
-        
+
         week_summary = {
             "week_start": week_start.isoformat(),
             "calendar_week": cw,
@@ -104,14 +108,15 @@ def _generate_schedule_examples(cfg: ScheduleConfigModel, start: date, weeks: in
             "summary": _summarize_week(week_schedule, cfg),
         }
         examples.append(week_summary)
-    
+
     return examples
+
 
 def _summarize_week(week_schedule: Dict, cfg: ScheduleConfigModel) -> str:
     """Create a human-readable week summary."""
     mom_days = sum(1 for day in week_schedule.values() if day["guardian"] == "mom")
     dad_days = 7 - mom_days
-    
+
     if mom_days == 7:
         return f"Full week with {cfg.parties.mom}"
     elif dad_days == 7:
@@ -119,47 +124,55 @@ def _summarize_week(week_schedule: Dict, cfg: ScheduleConfigModel) -> str:
     else:
         return f"{cfg.parties.mom}: {mom_days} days, {cfg.parties.dad}: {dad_days} days"
 
+
 def _generate_decision_examples(cfg: ScheduleConfigModel, start: date) -> List[Dict]:
     """Generate examples of how to make scheduling decisions."""
     examples = []
-    
+
     # Example 1: Planning an event
     event_date = start + timedelta(days=14)
     resolution = resolve_for_date(event_date, cfg)
-    examples.append({
-        "scenario": "Planning a birthday party",
-        "date": event_date.isoformat(),
-        "question": f"Who should organize a birthday party on {event_date.strftime('%B %d, %Y')}?",
-        "answer": f"{cfg.parties.mom if resolution['guardian'] == 'mom' else cfg.parties.dad} has custody",
-        "resolution": resolution,
-    })
-    
+    examples.append(
+        {
+            "scenario": "Planning a birthday party",
+            "date": event_date.isoformat(),
+            "question": f"Who should organize a birthday party on {event_date.strftime('%B %d, %Y')}?",
+            "answer": f"{cfg.parties.mom if resolution['guardian'] == 'mom' else cfg.parties.dad} has custody",
+            "resolution": resolution,
+        }
+    )
+
     # Example 2: Vacation planning
     vacation_start = start + timedelta(days=30)
     vacation_week = resolve_week_of(vacation_start, cfg)
-    examples.append({
-        "scenario": "Planning a week-long vacation",
-        "week_start": vacation_start.isoformat(),
-        "question": "How is custody split for a vacation week?",
-        "answer": _summarize_week(vacation_week, cfg),
-        "details": vacation_week,
-    })
-    
+    examples.append(
+        {
+            "scenario": "Planning a week-long vacation",
+            "week_start": vacation_start.isoformat(),
+            "question": "How is custody split for a vacation week?",
+            "answer": _summarize_week(vacation_week, cfg),
+            "details": vacation_week,
+        }
+    )
+
     # Example 3: Special Sunday
     next_sunday = start + timedelta(days=(6 - start.weekday()) % 7)
     if next_sunday == start:
         next_sunday += timedelta(days=7)
-    
+
     sunday_resolution = resolve_for_date(next_sunday, cfg)
-    examples.append({
-        "scenario": "Sunday activity planning",
-        "date": next_sunday.isoformat(),
-        "question": f"Can {cfg.parties.dad} plan an all-day Sunday activity?",
-        "answer": _get_sunday_answer(next_sunday, sunday_resolution, cfg),
-        "resolution": sunday_resolution,
-    })
-    
+    examples.append(
+        {
+            "scenario": "Sunday activity planning",
+            "date": next_sunday.isoformat(),
+            "question": f"Can {cfg.parties.dad} plan an all-day Sunday activity?",
+            "answer": _get_sunday_answer(next_sunday, sunday_resolution, cfg),
+            "resolution": sunday_resolution,
+        }
+    )
+
     return examples
+
 
 def _get_sunday_answer(sunday: date, resolution: Dict, cfg: ScheduleConfigModel) -> str:
     """Generate answer about Sunday activities."""
@@ -170,6 +183,7 @@ def _get_sunday_answer(sunday: date, resolution: Dict, cfg: ScheduleConfigModel)
         return f"Only morning activities - must return by 1 PM (CW{cw}, special Sunday)"
     else:
         return f"Yes, {cfg.parties.dad} has full custody (CW{cw})"
+
 
 def _generate_json_schema() -> Dict[str, Any]:
     """Generate JSON Schema for the schedule configuration."""
@@ -182,19 +196,25 @@ def _generate_json_schema() -> Dict[str, Any]:
                 "type": "object",
                 "required": ["mom", "dad", "children"],
                 "properties": {
-                    "mom": {"type": "string", "description": "Name/identifier for primary caregiver"},
-                    "dad": {"type": "string", "description": "Name/identifier for secondary caregiver"},
+                    "mom": {
+                        "type": "string",
+                        "description": "Name/identifier for primary caregiver",
+                    },
+                    "dad": {
+                        "type": "string",
+                        "description": "Name/identifier for secondary caregiver",
+                    },
                     "children": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "List of children's names"
-                    }
-                }
+                        "description": "List of children's names",
+                    },
+                },
             },
             "calendar_week_system": {
                 "type": "string",
                 "enum": ["ISO8601"],
-                "description": "Calendar week numbering system"
+                "description": "Calendar week numbering system",
             },
             "handoff": {
                 "type": "object",
@@ -203,14 +223,14 @@ def _generate_json_schema() -> Dict[str, Any]:
                     "weekdays": {
                         "type": "string",
                         "enum": ["school"],
-                        "description": "Weekday handoff location"
+                        "description": "Weekday handoff location",
                     },
                     "sunday_dad_to_mom": {
                         "type": "string",
                         "enum": ["by_1pm"],
-                        "description": "Special Sunday handoff time"
-                    }
-                }
+                        "description": "Special Sunday handoff time",
+                    },
+                },
             },
             "rules": {
                 "type": "object",
@@ -223,8 +243,8 @@ def _generate_json_schema() -> Dict[str, Any]:
                             "monday": {"type": "string", "enum": ["mom", "dad"]},
                             "tuesday": {"type": "string", "enum": ["mom", "dad"]},
                             "wednesday": {"type": "string", "enum": ["mom", "dad"]},
-                            "thursday": {"type": "string", "enum": ["mom", "dad"]}
-                        }
+                            "thursday": {"type": "string", "enum": ["mom", "dad"]},
+                        },
                     },
                     "weekends": {
                         "type": "object",
@@ -236,8 +256,8 @@ def _generate_json_schema() -> Dict[str, Any]:
                                 "properties": {
                                     "friday": {"type": "string", "enum": ["mom", "dad"]},
                                     "saturday": {"type": "string", "enum": ["mom", "dad"]},
-                                    "sunday": {"type": "string", "enum": ["mom", "dad"]}
-                                }
+                                    "sunday": {"type": "string", "enum": ["mom", "dad"]},
+                                },
                             },
                             "even_weeks": {
                                 "type": "object",
@@ -249,23 +269,27 @@ def _generate_json_schema() -> Dict[str, Any]:
                                         "type": "object",
                                         "required": ["cw_mod4_equals_0", "otherwise"],
                                         "properties": {
-                                            "cw_mod4_equals_0": {"type": "string", "enum": ["mom", "dad"]},
-                                            "otherwise": {"type": "string", "enum": ["mom", "dad"]}
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                                            "cw_mod4_equals_0": {
+                                                "type": "string",
+                                                "enum": ["mom", "dad"],
+                                            },
+                                            "otherwise": {"type": "string", "enum": ["mom", "dad"]},
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
             },
             "holidays": {
                 "type": "object",
                 "additionalProperties": {"type": "string", "enum": ["mom", "dad"]},
-                "description": "Override rules for specific dates (YYYY-MM-DD format)"
-            }
-        }
+                "description": "Override rules for specific dates (YYYY-MM-DD format)",
+            },
+        },
     }
+
 
 def _generate_ai_instructions() -> Dict[str, Any]:
     """Generate instructions for AI to use the schedule."""
@@ -295,6 +319,7 @@ def _generate_ai_instructions() -> Dict[str, Any]:
         },
     }
 
+
 def export_ai_context(
     config_path: Optional[str] = None,
     output_path: Optional[str] = None,
@@ -303,30 +328,30 @@ def export_ai_context(
 ) -> str:
     """
     Export AI context to a JSON file or return as string.
-    
+
     Args:
         config_path: Path to schedule configuration file
         output_path: Where to save the AI context (if None, returns string)
         target_date: Starting date in YYYY-MM-DD format
         weeks_ahead: How many weeks of examples to include
-    
+
     Returns:
         JSON string of the AI context
     """
     from pathlib import Path
     from datetime import datetime
-    
+
     # Load configuration
     if config_path:
         cfg = ScheduleConfigModel.model_validate_json(Path(config_path).read_text())
     else:
         cfg = load_default_config()
-    
+
     # Parse target date
     start = None
     if target_date:
         start = datetime.strptime(target_date, "%Y-%m-%d").date()
-    
+
     # Generate context
     context = generate_ai_context(
         config=cfg,
@@ -335,13 +360,13 @@ def export_ai_context(
         include_examples=True,
         include_schema=True,
     )
-    
+
     # Export
     json_str = json.dumps(context, indent=2, default=str)
-    
+
     if output_path:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         Path(output_path).write_text(json_str, encoding="utf-8")
         return f"AI context exported to {output_path}"
-    
+
     return json_str

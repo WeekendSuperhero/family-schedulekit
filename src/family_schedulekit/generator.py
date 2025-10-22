@@ -6,6 +6,7 @@ from typing import List
 from .models import ScheduleConfigModel
 from .resources import load_template
 
+
 @dataclass
 class InitParams:
     mom: str
@@ -15,11 +16,13 @@ class InitParams:
     outfile: Path = Path("schema/my-schedule.json")
     overwrite: bool = False
 
+
 def generate_config(params: InitParams) -> str:
     base = load_template(params.template).model_dump(mode="json")
     base["parties"] = {"mom": params.mom, "dad": params.dad, "children": params.children}
     cfg = ScheduleConfigModel.model_validate(base)
     return json.dumps(cfg.model_dump(mode="json"), indent=2)
+
 
 def write_config(params: InitParams) -> Path:
     if params.outfile.exists() and not params.overwrite:

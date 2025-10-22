@@ -10,16 +10,25 @@ from .resolver import resolve_for_date, iso_week
 
 DayRecord = Dict[str, object]
 
+
 @dataclass
 class ExportPlan:
     start: date
     weeks: int
     outdir: Path
-    formats: Tuple[Literal["csv","json","jsonl","ics","md","png"], ...] = ("csv","json","jsonl","ics","md")
+    formats: Tuple[Literal["csv", "json", "jsonl", "ics", "md", "png"], ...] = (
+        "csv",
+        "json",
+        "jsonl",
+        "ics",
+        "md",
+    )
+
 
 def _daterange(start: date, days: int) -> Iterable[date]:
     for i in range(days):
         yield start + timedelta(days=i)
+
 
 def resolve_range(start: date, weeks: int, cfg: ScheduleConfigModel) -> List[DayRecord]:
     days = weeks * 7
@@ -32,8 +41,9 @@ def resolve_range(start: date, weeks: int, cfg: ScheduleConfigModel) -> List[Day
         out.append(rec)
     return out
 
+
 def _csv_lines(records: List[DayRecord]) -> List[str]:
-    header = ["iso_date","weekday","calendar_week","guardian","handoff"]
+    header = ["iso_date", "weekday", "calendar_week", "guardian", "handoff"]
     lines = [",".join(header)]
     for r in records:
         row = [
@@ -44,14 +54,16 @@ def _csv_lines(records: List[DayRecord]) -> List[str]:
             "" if r["handoff"] is None else str(r["handoff"]),
         ]
         # basic CSV escape
-        row = [('"'+c.replace('"','""')+'"') if ("," in c or " " in c) else c for c in row]
+        row = [('"' + c.replace('"', '""') + '"') if ("," in c or " " in c) else c for c in row]
         lines.append(",".join(row))
     return lines
+
 
 def _mk_uid(prefix: str, dt: date) -> str:
     # RFC5545-ish unique id
     ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
     return f"{prefix}-{dt.isoformat()}-{ts}@family-schedulekit"
+
 
 def _ical_for_records(records: List[DayRecord]) -> str:
     # All-day events (midnight to midnight). Sunday Dad->Mom handoff at 13:00 note.
@@ -87,7 +99,9 @@ def _ical_for_records(records: List[DayRecord]) -> str:
     lines.append("END:VCALENDAR")
     return "\n".join(lines)
 
+
 # ---------- Prompt generation (JSONL) ----------
+
 
 def _swap_messages_for_records(records: List[DayRecord]) -> List[Dict[str, str]]:
     """
@@ -102,38 +116,48 @@ def _swap_messages_for_records(records: List[DayRecord]) -> List[Dict[str, str]]
         cw = r["calendar_week"]
 
         # Weekday school handoff reminders (Mon-Thu)
-        if day in ("monday","tuesday","wednesday","thursday"):
+        if day in ("monday", "tuesday", "wednesday", "thursday"):
             who = r["guardian"]
-            out.append({
-                "input": f"Draft a short reminder that {who} has the kids on {day} {date_str} with handoff at school.",
-                "ideal": f"Quick reminder: {who.capitalize()} has the kids on {day.capitalize()} ({date_str}). Handoff at school. Thanks!"
-            })
+            out.append(
+                {
+                    "input": f"Draft a short reminder that {who} has the kids on {day} {date_str} with handoff at school.",
+                    "ideal": f"Quick reminder: {who.capitalize()} has the kids on {day.capitalize()} ({date_str}). Handoff at school. Thanks!",
+                }
+            )
 
         # Friday after school start of weekend
         if day == "friday" and r.get("handoff") == "after_school":
             who = r["guardian"]
-            out.append({
-                "input": f"Draft a message to confirm weekend start on Friday {date_str} after school; {who} is picking up.",
-                "ideal": f"Confirming: {who.capitalize()} starts the weekend on Friday ({date_str}) after school pickup."
-            })
+            out.append(
+                {
+                    "input": f"Draft a message to confirm weekend start on Friday {date_str} after school; {who} is picking up.",
+                    "ideal": f"Confirming: {who.capitalize()} starts the weekend on Friday ({date_str}) after school pickup.",
+                }
+            )
 
         # Sunday exception messaging
         if day == "sunday":
             who = r["guardian"]
             if r.get("handoff") == "dad_to_mom_by_1pm":
-                out.append({
-                    "input": f"Draft a polite note for Sunday {date_str} confirming drop-off from Dad to Mom by 1 PM.",
-                    "ideal": f"Hi! Confirming Sunday ({date_str}) drop-off: Dad → Mom by 1:00 PM. See you then."
-                })
+                out.append(
+                    {
+                        "input": f"Draft a polite note for Sunday {date_str} confirming drop-off from Dad to Mom by 1 PM.",
+                        "ideal": f"Hi! Confirming Sunday ({date_str}) drop-off: Dad → Mom by 1:00 PM. See you then.",
+                    }
+                )
             else:
-                out.append({
-                    "input": f"Draft a brief message that {who} has the kids all day on Sunday {date_str}.",
-                    "ideal": f"Just a heads up: {who.capitalize()} has the kids all day Sunday ({date_str})."
-                })
+                out.append(
+                    {
+                        "input": f"Draft a brief message that {who} has the kids all day on Sunday {date_str}.",
+                        "ideal": f"Just a heads up: {who.capitalize()} has the kids all day Sunday ({date_str}).",
+                    }
+                )
 
     return out
 
+
 # ---------- Writers ----------
+
 
 def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel) -> Dict[str, Path]:
     plan.outdir.mkdir(parents=True, exist_ok=True)
@@ -175,7 +199,9 @@ def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel) -> Dict[str, Path]
             "|---|---:|---:|---|---|",
         ]
         for r in records:
-            md.append(f"| {r['date']} | {str(r['weekday']).capitalize()} | {r['calendar_week']} | {str(r['guardian']).capitalize()} | {'' if r['handoff'] is None else r['handoff']} |")
+            md.append(
+                f"| {r['date']} | {str(r['weekday']).capitalize()} | {r['calendar_week']} | {str(r['guardian']).capitalize()} | {'' if r['handoff'] is None else r['handoff']} |"
+            )
         p.write_text("\n".join(md), encoding="utf-8")
         paths["md"] = p
 

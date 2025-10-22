@@ -3,11 +3,14 @@ from datetime import date, timedelta
 from typing import Dict, Optional
 from .models import ScheduleConfigModel, Weekday, Guardian
 
+
 def iso_week(dt: date) -> int:
     return dt.isocalendar().week
 
+
 def _weekday_slug(dt: date) -> str:
     return Weekday.from_python_weekday(dt.weekday()).slug()
+
 
 def resolve_for_date(dt: date, cfg: ScheduleConfigModel) -> Dict[str, object]:
     iso_date = dt.isoformat()
@@ -16,9 +19,14 @@ def resolve_for_date(dt: date, cfg: ScheduleConfigModel) -> Dict[str, object]:
     handoff: Optional[str] = None
 
     if iso_date in cfg.holidays:
-        return {"date": iso_date, "calendar_week": cw, "guardian": cfg.holidays[iso_date], "handoff": None}
+        return {
+            "date": iso_date,
+            "calendar_week": cw,
+            "guardian": cfg.holidays[iso_date],
+            "handoff": None,
+        }
 
-    if day in ("monday","tuesday","wednesday","thursday"):
+    if day in ("monday", "tuesday", "wednesday", "thursday"):
         guardian: Guardian = getattr(cfg.rules.weekdays, day)
         handoff = cfg.handoff.weekdays
     else:
@@ -29,7 +37,7 @@ def resolve_for_date(dt: date, cfg: ScheduleConfigModel) -> Dict[str, object]:
                 handoff = "after_school"
         else:
             weekend = cfg.rules.weekends.even_weeks
-            if day in ("friday","saturday"):
+            if day in ("friday", "saturday"):
                 guardian = getattr(weekend, day)  # type: ignore[assignment]
                 if day == "friday":
                     handoff = "after_school"
@@ -40,6 +48,7 @@ def resolve_for_date(dt: date, cfg: ScheduleConfigModel) -> Dict[str, object]:
                     handoff = "dad_to_mom_by_1pm"
 
     return {"date": iso_date, "calendar_week": cw, "guardian": guardian, "handoff": handoff}
+
 
 def resolve_week_of(anchor: date, cfg: ScheduleConfigModel) -> Dict[str, Dict[str, object]]:
     monday = anchor - timedelta(days=anchor.weekday())
