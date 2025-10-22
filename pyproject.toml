@@ -11,7 +11,11 @@ requires-python = ">=3.13"
 authors = [{ name = "Weekend Superhero LLC" }]
 license = { text = "MIT" }
 keywords = ["custody", "co-parenting", "schedule", "iso8601", "calendar", "ai"]
-dependencies = ["pydantic>=2.7,<3.0"]
+dependencies = [
+  "pydantic>=2.7,<3.0",
+  "Pillow>=10.3",
+  "argcomplete>=3.2"
+]
 
 classifiers = [
   "Development Status :: 3 - Alpha",

@@ -3,6 +3,11 @@ import argparse, json
 from pathlib import Path
 from datetime import datetime
 
+try:  # pragma: no cover - optional dependency handled at runtime
+    import argcomplete
+except ImportError:  # pragma: no cover
+    argcomplete = None
+
 from .models import ScheduleConfigModel
 from .resolver import iso_week, resolve_for_date, resolve_week_of
 from .generator import InitParams, write_config
@@ -91,7 +96,7 @@ def main():
     ap_exp.add_argument("--start", required=True, help="Start date YYYY-MM-DD (Monday recommended)")
     ap_exp.add_argument("--weeks", type=int, default=12, help="How many weeks to include (default 12)")
     ap_exp.add_argument("--outdir", default="out", help="Output directory (default: ./out)")
-    ap_exp.add_argument("--formats", nargs="+", default=["csv","json","jsonl","ics","md"], help="One or more of: csv json jsonl ics md")
+    ap_exp.add_argument("--formats", nargs="+", default=["csv","json","jsonl","ics","md"], help="One or more of: csv json jsonl ics md png")
     ap_exp.set_defaults(func=_cmd_export)
 
     ap_ai = sub.add_parser("ai-context", help="Generate AI-friendly context with schema and examples")
@@ -100,6 +105,9 @@ def main():
     ap_ai.add_argument("--weeks", type=int, default=4, help="Weeks of examples to generate")
     ap_ai.add_argument("--output", help="Output file path (if not specified, prints to stdout)")
     ap_ai.set_defaults(func=_cmd_ai_context)
+
+    if argcomplete is not None:
+        argcomplete.autocomplete(ap)
 
     args = ap.parse_args()
     args.func(args)

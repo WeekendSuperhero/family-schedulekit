@@ -15,7 +15,7 @@ class ExportPlan:
     start: date
     weeks: int
     outdir: Path
-    formats: Tuple[Literal["csv","json","jsonl","ics","md"], ...] = ("csv","json","jsonl","ics","md")
+    formats: Tuple[Literal["csv","json","jsonl","ics","md","png"], ...] = ("csv","json","jsonl","ics","md")
 
 def _daterange(start: date, days: int) -> Iterable[date]:
     for i in range(days):
@@ -178,5 +178,12 @@ def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel) -> Dict[str, Path]
             md.append(f"| {r['date']} | {str(r['weekday']).capitalize()} | {r['calendar_week']} | {str(r['guardian']).capitalize()} | {'' if r['handoff'] is None else r['handoff']} |")
         p.write_text("\n".join(md), encoding="utf-8")
         paths["md"] = p
+
+    if "png" in plan.formats:
+        png_path = plan.outdir / f"visual_{plan.start.isoformat()}_{plan.weeks}w.png"
+        from .visualizer import render_schedule_image
+
+        render_schedule_image(records, plan.start, plan.weeks, png_path)
+        paths["png"] = png_path
 
     return paths

@@ -89,6 +89,9 @@ You can reuse this schema for any co-parenting arrangement by changing the `part
 
 ```bash
 pip install family-schedulekit
+
+# or with uv
+uv pip install family-schedulekit
 ```
 
 Or for development:
@@ -114,7 +117,53 @@ family-schedulekit resolve --week-of 2025-02-23
 
 # List available templates
 family-schedulekit list-templates
+
+# Export multi-format schedule files (JSON + PNG image)
+family-schedulekit export --start 2025-02-03 --weeks 6 --formats json png
 ```
+
+> ℹ️ PNG export requires Pillow, which is included with the base install.
+
+### Working with `uv`
+
+If you use [uv](https://docs.astral.sh/uv/):
+
+```bash
+# Sync project dependencies (base)
+uv sync
+
+# Include dev tools (pytest, ruff, mypy, Pillow)
+uv sync --extra dev
+
+# Run commands in the managed environment
+uv run --extra dev pytest
+uv run family-schedulekit export --start 2025-02-03 --weeks 6 --formats png
+```
+
+The `make` targets auto-detect `uv`. Running `make dev` is equivalent to `uv sync --extra dev`.
+
+### Shell Completions
+
+Auto-complete subcommands and options using [`argcomplete`](https://github.com/kislyuk/argcomplete):
+
+```bash
+# Enable once per shell session
+eval "$(register-python-argcomplete family-schedulekit)"
+
+# Or install permanently (Bash)
+register-python-argcomplete family-schedulekit >> ~/.bash_completion
+```
+
+For `zsh`, add the following to your `~/.zshrc` (once):
+
+```bash
+autoload -U bashcompinit && bashcompinit
+eval "$(register-python-argcomplete family-schedulekit)"
+```
+
+Reload your shell (`source ~/.zshrc`) and completions will be available.
+
+Fish users can leverage `argcomplete`'s `register-python-argcomplete --shell fish` to generate functions.
 
 ### Python API
 
