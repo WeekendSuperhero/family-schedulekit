@@ -88,16 +88,10 @@ You can reuse this schema for any co-parenting arrangement by changing the `part
 ## 🚀 Installation
 
 ```bash
-pip install family-schedulekit
-
-# or with uv
-uv pip install family-schedulekit
+uv sync --extra dev
 ```
 
-Or for development:
-```bash
-make dev
-```
+> `uv sync --extra dev` installs runtime dependencies along with ruff, pytest, mypy, Pillow, and argcomplete.
 
 ---
 
@@ -129,10 +123,7 @@ family-schedulekit export --start 2025-02-03 --weeks 6 --formats json png
 If you use [uv](https://docs.astral.sh/uv/):
 
 ```bash
-# Sync project dependencies (base)
-uv sync
-
-# Include dev tools (pytest, ruff, mypy, Pillow)
+# Sync project dependencies (runtime + dev extras)
 uv sync --extra dev
 
 # Run commands in the managed environment
@@ -140,7 +131,7 @@ uv run --extra dev pytest
 uv run family-schedulekit export --start 2025-02-03 --weeks 6 --formats png
 ```
 
-The `make` targets auto-detect `uv`. Running `make dev` is equivalent to `uv sync --extra dev`.
+The workspace `uv.lock` should be committed so collaborators resolve the exact versions.
 
 ### Shell Completions
 
