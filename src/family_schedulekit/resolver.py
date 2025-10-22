@@ -33,19 +33,13 @@ def resolve_for_date(dt: date, cfg: ScheduleConfigModel) -> dict[str, object]:
                 guardian = cfg.rules.weekends.even_weeks.friday
             handoff = "after_school"
         case Weekday.SATURDAY:
-            guardian = (
-                cfg.rules.weekends.odd_weeks.saturday
-                if cw % 2 == 1
-                else cfg.rules.weekends.even_weeks.saturday
-            )
+            guardian = cfg.rules.weekends.odd_weeks.saturday if cw % 2 == 1 else cfg.rules.weekends.even_weeks.saturday
         case Weekday.SUNDAY:
             if cw % 2 == 1:
                 guardian = cfg.rules.weekends.odd_weeks.sunday
             else:
                 sunday_rule = cfg.rules.weekends.even_weeks.sunday
-                guardian = (
-                    sunday_rule.cw_mod4_equals_0 if (cw % 4 == 0) else sunday_rule.otherwise
-                )
+                guardian = sunday_rule.cw_mod4_equals_0 if (cw % 4 == 0) else sunday_rule.otherwise
                 if guardian == "dad" and cfg.handoff.sunday_dad_to_mom == "by_1pm":
                     handoff = "dad_to_mom_by_1pm"
         case _:

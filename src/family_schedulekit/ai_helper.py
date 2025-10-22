@@ -85,9 +85,7 @@ def _generate_handoff_rules(cfg: ScheduleConfigModel) -> dict[str, str]:
     }
 
 
-def _generate_schedule_examples(
-    cfg: ScheduleConfigModel, start: date, weeks: int
-) -> list[dict[str, Any]]:
+def _generate_schedule_examples(cfg: ScheduleConfigModel, start: date, weeks: int) -> list[dict[str, Any]]:
     """Generate resolved schedule examples for multiple weeks."""
     examples: list[dict[str, Any]] = []
     current = start - timedelta(days=start.weekday())  # Start from Monday
