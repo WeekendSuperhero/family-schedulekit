@@ -66,57 +66,99 @@ def render_schedule_image(
 
     colors = _normalize_palette(palette)
 
-    cell_w = 140
-    cell_h = 80
-    left_margin = 140
-    top_margin = 80
-    grid_padding = 20
+    # Base layout constants (unscaled)
+    base_cell_w = 160
+    base_cell_h = 120
+    left_margin = 200
+    top_margin = 160
+    grid_padding = 40
+    columns = len(_WEEKDAYS)
 
-    width = left_margin + weeks * cell_w + grid_padding
-    height = top_margin + len(_WEEKDAYS) * cell_h + grid_padding
+    width = left_margin + columns * base_cell_w + grid_padding
+    height = top_margin + weeks * base_cell_h + grid_padding
 
-    image = Image.new("RGB", (width, height), "white")
+    scale = 2
+    scaled_width = width * scale
+    scaled_height = height * scale
+    cell_w = base_cell_w * scale
+    cell_h = base_cell_h * scale
+    left_offset = left_margin * scale
+    top_offset = top_margin * scale
+
+    image = Image.new("RGB", (scaled_width, scaled_height), "white")
     draw = ImageDraw.Draw(image)
-    font = ImageFont.load_default()
+
+    try:
+        header_font = ImageFont.truetype("DejaVuSans.ttf", int(32 * scale))
+        cell_font = ImageFont.truetype("DejaVuSans.ttf", int(26 * scale))
+    except OSError:
+        header_font = ImageFont.load_default()
+        cell_font = ImageFont.load_default()
 
     record_index = _build_index(records)
 
-    # Headers
-    draw.text((10, top_margin + cell_h * 0.3), "Day", fill="black", font=font)
-    for idx in range(weeks):
-        week_records = _records_for_week(records, idx)
-        label = _week_label(week_records, start, idx)
-        text_x = left_margin + idx * cell_w + cell_w / 2
-        draw.text((text_x - 20, 30), label, fill="black", font=font)
+    def _font_bbox(font: ImageFont.ImageFont, text: str) -> tuple[int, int, int, int]:
+        try:
+            return font.getbbox(text)
+        except AttributeError:
+            w, h = font.getsize(text)
+            return (0, 0, w, h)
 
-    # Day labels and cells
-    for row, weekday in enumerate(_WEEKDAYS):
-        y0 = top_margin + row * cell_h
-        draw.text((10, y0 + cell_h / 2 - 8), weekday.value.capitalize(), fill="black", font=font)
-        for col in range(weeks):
-            x0 = left_margin + col * cell_w
+    def _draw_text_center(text: str, x: int, y: int, font: ImageFont.ImageFont):
+        bbox = _font_bbox(font, text)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        draw.text((x - tw // 2, y - th // 2), text, fill="black", font=font)
+
+    def _line_height(font: ImageFont.ImageFont) -> int:
+        bbox = _font_bbox(font, "Hg")
+        return bbox[3] - bbox[1]
+
+    # Column headers (weekdays across the top)
+    header_y = top_offset // 2
+    for col, weekday in enumerate(_WEEKDAYS):
+        center_x = left_offset + col * cell_w + cell_w // 2
+        _draw_text_center(weekday.value.capitalize(), center_x, header_y, header_font)
+
+    # Rows for each week
+    for row in range(weeks):
+        week_records = _records_for_week(records, row)
+        week_label = _week_label(week_records, start, row)
+        row_center_y = top_offset + row * cell_h + cell_h // 2
+        # Week labels on the left
+        _draw_text_center(week_label, left_offset // 2, row_center_y, header_font)
+
+        for col, weekday in enumerate(_WEEKDAYS):
+            x0 = left_offset + col * cell_w
+            y0 = top_offset + row * cell_h
             rect = (x0, y0, x0 + cell_w, y0 + cell_h)
-            record = record_index.get((col, weekday))
+            record = record_index.get((row, weekday))
             guardian = (record or {}).get("guardian", "unknown")
             color = colors.get(guardian, colors["unknown"])
-            draw.rectangle(rect, fill=color, outline="black", width=1)
+            draw.rectangle(rect, fill=color, outline="black", width=scale)
 
             if not record:
                 continue
 
-            date_label = record["date"]
-            text_y = y0 + 10
-            draw.text((x0 + 10, text_y), date_label, fill="black", font=font)
+            line_x = x0 + 12 * scale
+            line_y = y0 + 14 * scale
+            line_spacing = _line_height(cell_font) + 6 * scale
 
-            guardian_name = guardian.capitalize() if guardian else "Unknown"
-            draw.text((x0 + 10, text_y + 20), f"{guardian_name}", fill="black", font=font)
+            draw.text((line_x, line_y), str(record["date"]), fill="black", font=cell_font)
+            draw.text((line_x, line_y + line_spacing), f"{guardian.capitalize()}", fill="black", font=cell_font)
 
             handoff = record.get("handoff")
             if handoff and handoff != "school":
-                draw.text((x0 + 10, text_y + 40), _format_handoff(handoff), fill="black", font=font)
+                draw.text(
+                    (line_x, line_y + 2 * line_spacing),
+                    _format_handoff(handoff),
+                    fill="black",
+                    font=cell_font,
+                )
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    image.save(out_path, format="PNG")
+    resample = getattr(Image, "Resampling", Image).LANCZOS
+    image.resize((width, height), resample=resample).save(out_path, format="PNG")
     return out_path
 
 
