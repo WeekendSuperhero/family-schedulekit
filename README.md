@@ -87,6 +87,8 @@ You can reuse this schema for any co-parenting arrangement by changing the `part
 
 ## 🚀 Installation
 
+Requires **Python 3.14+**.
+
 ```bash
 uv sync --extra dev
 ```

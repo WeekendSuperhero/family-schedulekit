@@ -1,27 +1,28 @@
 from __future__ import annotations
-from enum import IntEnum
-from typing import Dict, Literal
+from datetime import datetime
+from enum import StrEnum
+from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 
-class Weekday(IntEnum):
-    MONDAY = 0
-    TUESDAY = 1
-    WEDNESDAY = 2
-    THURSDAY = 3
-    FRIDAY = 4
-    SATURDAY = 5
-    SUNDAY = 6
+class Weekday(StrEnum):
+    MONDAY = "monday"
+    TUESDAY = "tuesday"
+    WEDNESDAY = "wednesday"
+    THURSDAY = "thursday"
+    FRIDAY = "friday"
+    SATURDAY = "saturday"
+    SUNDAY = "sunday"
 
     @classmethod
     def from_python_weekday(cls, i: int) -> "Weekday":
-        return Weekday(i)
+        return tuple(cls)[i]
 
     def slug(self) -> str:
-        return ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"][int(self)]
+        return self.value
 
 
-Guardian = Literal["mom", "dad"]
+type Guardian = Literal["mom", "dad"]
 
 
 class WeekdayRules(BaseModel):
@@ -74,13 +75,11 @@ class ScheduleConfigModel(BaseModel):
     calendar_week_system: Literal["ISO8601"]
     handoff: Handoff
     rules: Rules
-    holidays: Dict[str, Guardian] = Field(default_factory=dict)
+    holidays: dict[str, Guardian] = Field(default_factory=dict)
 
     @field_validator("holidays")
     @classmethod
-    def _validate_holidays(cls, v: Dict[str, Guardian]):
-        from datetime import datetime
-
+    def _validate_holidays(cls, v: dict[str, Guardian]):
         for k in v:
             datetime.strptime(k, "%Y-%m-%d")
         return v

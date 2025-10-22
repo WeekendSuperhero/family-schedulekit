@@ -1,19 +1,21 @@
 from __future__ import annotations
+
 import json
 from datetime import date, timedelta
-from typing import Dict, Any, List, Optional
+from typing import Any
+
 from .models import ScheduleConfigModel
-from .resolver import resolve_for_date, resolve_week_of, iso_week
+from .resolver import iso_week, resolve_for_date, resolve_week_of
 from .resources import load_default_config
 
 
 def generate_ai_context(
-    config: Optional[ScheduleConfigModel] = None,
-    target_date: Optional[date] = None,
+    config: ScheduleConfigModel | None = None,
+    target_date: date | None = None,
     weeks_ahead: int = 4,
     include_examples: bool = True,
     include_schema: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Generate comprehensive context for AI to understand and work with the custody schedule.
 
@@ -30,7 +32,7 @@ def generate_ai_context(
     cfg = config or load_default_config()
     start_date = target_date or date.today()
 
-    context = {
+    context: dict[str, Any] = {
         "system_description": (
             "This is a co-parenting schedule system using ISO 8601 week numbering. "
             "The schedule determines which parent has custody on any given day, "
@@ -60,7 +62,7 @@ def generate_ai_context(
     return context
 
 
-def _generate_rules_summary(cfg: ScheduleConfigModel) -> Dict[str, str]:
+def _generate_rules_summary(cfg: ScheduleConfigModel) -> dict[str, str]:
     """Generate human-readable rules summary."""
     return {
         "weekday_pattern": (f"Monday: {cfg.parties.mom}, Tuesday: {cfg.parties.dad}, Wednesday: {cfg.parties.mom}, Thursday: {cfg.parties.dad}"),
@@ -73,7 +75,7 @@ def _generate_rules_summary(cfg: ScheduleConfigModel) -> Dict[str, str]:
     }
 
 
-def _generate_handoff_rules(cfg: ScheduleConfigModel) -> Dict[str, str]:
+def _generate_handoff_rules(cfg: ScheduleConfigModel) -> dict[str, str]:
     """Generate handoff logistics rules."""
     return {
         "weekday_handoffs": "Exchanges happen at school (drop-off by one parent, pick-up by the other)",
@@ -83,9 +85,11 @@ def _generate_handoff_rules(cfg: ScheduleConfigModel) -> Dict[str, str]:
     }
 
 
-def _generate_schedule_examples(cfg: ScheduleConfigModel, start: date, weeks: int) -> List[Dict]:
+def _generate_schedule_examples(
+    cfg: ScheduleConfigModel, start: date, weeks: int
+) -> list[dict[str, Any]]:
     """Generate resolved schedule examples for multiple weeks."""
-    examples = []
+    examples: list[dict[str, Any]] = []
     current = start - timedelta(days=start.weekday())  # Start from Monday
 
     for week_num in range(weeks):
@@ -106,7 +110,7 @@ def _generate_schedule_examples(cfg: ScheduleConfigModel, start: date, weeks: in
     return examples
 
 
-def _summarize_week(week_schedule: Dict, cfg: ScheduleConfigModel) -> str:
+def _summarize_week(week_schedule: dict[str, dict[str, Any]], cfg: ScheduleConfigModel) -> str:
     """Create a human-readable week summary."""
     mom_days = sum(1 for day in week_schedule.values() if day["guardian"] == "mom")
     dad_days = 7 - mom_days
@@ -119,9 +123,9 @@ def _summarize_week(week_schedule: Dict, cfg: ScheduleConfigModel) -> str:
         return f"{cfg.parties.mom}: {mom_days} days, {cfg.parties.dad}: {dad_days} days"
 
 
-def _generate_decision_examples(cfg: ScheduleConfigModel, start: date) -> List[Dict]:
+def _generate_decision_examples(cfg: ScheduleConfigModel, start: date) -> list[dict[str, Any]]:
     """Generate examples of how to make scheduling decisions."""
-    examples = []
+    examples: list[dict[str, Any]] = []
 
     # Example 1: Planning an event
     event_date = start + timedelta(days=14)
@@ -168,7 +172,7 @@ def _generate_decision_examples(cfg: ScheduleConfigModel, start: date) -> List[D
     return examples
 
 
-def _get_sunday_answer(sunday: date, resolution: Dict, cfg: ScheduleConfigModel) -> str:
+def _get_sunday_answer(sunday: date, resolution: dict[str, Any], cfg: ScheduleConfigModel) -> str:
     """Generate answer about Sunday activities."""
     cw = iso_week(sunday)
     if resolution["guardian"] == "mom":
@@ -179,7 +183,7 @@ def _get_sunday_answer(sunday: date, resolution: Dict, cfg: ScheduleConfigModel)
         return f"Yes, {cfg.parties.dad} has full custody (CW{cw})"
 
 
-def _generate_json_schema() -> Dict[str, Any]:
+def _generate_json_schema() -> dict[str, Any]:
     """Generate JSON Schema for the schedule configuration."""
     return {
         "$schema": "http://json-schema.org/draft-07/schema#",

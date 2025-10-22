@@ -1,22 +1,25 @@
 from __future__ import annotations
+
 import json
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import Dict, Iterable, List, Literal, Optional, Tuple
+from typing import Literal
 
-from .models import ScheduleConfigModel
-from .resolver import resolve_for_date, iso_week
+from .models import ScheduleConfigModel, Weekday
+from .resolver import iso_week, resolve_for_date
 
-DayRecord = Dict[str, object]
+type DayRecord = dict[str, object]
+type ExportFormat = Literal["csv", "json", "jsonl", "ics", "md", "png"]
 
 
-@dataclass
+@dataclass(slots=True)
 class ExportPlan:
     start: date
     weeks: int
     outdir: Path
-    formats: Tuple[Literal["csv", "json", "jsonl", "ics", "md", "png"], ...] = (
+    formats: tuple[ExportFormat, ...] = (
         "csv",
         "json",
         "jsonl",
@@ -30,19 +33,19 @@ def _daterange(start: date, days: int) -> Iterable[date]:
         yield start + timedelta(days=i)
 
 
-def resolve_range(start: date, weeks: int, cfg: ScheduleConfigModel) -> List[DayRecord]:
+def resolve_range(start: date, weeks: int, cfg: ScheduleConfigModel) -> list[DayRecord]:
     days = weeks * 7
-    out: List[DayRecord] = []
+    out: list[DayRecord] = []
     for d in _daterange(start, days):
         rec = resolve_for_date(d, cfg)
-        rec["weekday"] = d.strftime("%A").lower()
+        rec["weekday"] = Weekday.from_python_weekday(d.weekday()).value
         rec["iso_date"] = d.isoformat()
         rec["calendar_week_system"] = cfg.calendar_week_system
         out.append(rec)
     return out
 
 
-def _csv_lines(records: List[DayRecord]) -> List[str]:
+def _csv_lines(records: list[DayRecord]) -> list[str]:
     header = ["iso_date", "weekday", "calendar_week", "guardian", "handoff"]
     lines = [",".join(header)]
     for r in records:
@@ -61,11 +64,11 @@ def _csv_lines(records: List[DayRecord]) -> List[str]:
 
 def _mk_uid(prefix: str, dt: date) -> str:
     # RFC5545-ish unique id
-    ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     return f"{prefix}-{dt.isoformat()}-{ts}@family-schedulekit"
 
 
-def _ical_for_records(records: List[DayRecord]) -> str:
+def _ical_for_records(records: list[DayRecord]) -> str:
     # All-day events (midnight to midnight). Sunday Dad->Mom handoff at 13:00 note.
     # No timezone complexity; all-day events use DATE values.
     lines = [
@@ -86,16 +89,18 @@ def _ical_for_records(records: List[DayRecord]) -> str:
         elif r.get("handoff") == "dad_to_mom_by_1pm":
             desc += "\\nHandoff: Dad → Mom by 1 PM (Sunday)."
         uid = _mk_uid("day", d)
-        lines += [
-            "BEGIN:VEVENT",
-            f"UID:{uid}",
-            f"DTSTAMP:{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}",
-            f"DTSTART;VALUE=DATE:{start}",
-            f"DTEND;VALUE=DATE:{end}",
-            f"SUMMARY:{summary}",
-            f"DESCRIPTION:{desc}",
-            "END:VEVENT",
-        ]
+        lines.extend(
+            [
+                "BEGIN:VEVENT",
+                f"UID:{uid}",
+                f"DTSTAMP:{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}",
+                f"DTSTART;VALUE=DATE:{start}",
+                f"DTEND;VALUE=DATE:{end}",
+                f"SUMMARY:{summary}",
+                f"DESCRIPTION:{desc}",
+                "END:VEVENT",
+            ]
+        )
     lines.append("END:VCALENDAR")
     return "\n".join(lines)
 
@@ -103,31 +108,31 @@ def _ical_for_records(records: List[DayRecord]) -> str:
 # ---------- Prompt generation (JSONL) ----------
 
 
-def _swap_messages_for_records(records: List[DayRecord]) -> List[Dict[str, str]]:
+def _swap_messages_for_records(records: list[DayRecord]) -> list[dict[str, str]]:
     """
     Generate AI-friendly message pairs for likely communications.
     Format: {"input": "...", "ideal": "..."} JSONL-ready.
     """
-    out: List[Dict[str, str]] = []
+    out: list[dict[str, str]] = []
 
     for r in records:
-        day = r["weekday"]
-        date_str = r["date"]  # ISO
+        day = Weekday(str(r["weekday"]))
+        date_str = str(r["date"])  # ISO string from resolve_for_date
         cw = r["calendar_week"]
 
         # Weekday school handoff reminders (Mon-Thu)
-        if day in ("monday", "tuesday", "wednesday", "thursday"):
-            who = r["guardian"]
+        if day in (Weekday.MONDAY, Weekday.TUESDAY, Weekday.WEDNESDAY, Weekday.THURSDAY):
+            who = str(r["guardian"])
             out.append(
                 {
-                    "input": f"Draft a short reminder that {who} has the kids on {day} {date_str} with handoff at school.",
-                    "ideal": f"Quick reminder: {who.capitalize()} has the kids on {day.capitalize()} ({date_str}). Handoff at school. Thanks!",
+                    "input": f"Draft a short reminder that {who} has the kids on {day.value} {date_str} with handoff at school.",
+                    "ideal": f"Quick reminder: {who.capitalize()} has the kids on {day.value.capitalize()} ({date_str}). Handoff at school. Thanks!",
                 }
             )
 
         # Friday after school start of weekend
-        if day == "friday" and r.get("handoff") == "after_school":
-            who = r["guardian"]
+        if day is Weekday.FRIDAY and r.get("handoff") == "after_school":
+            who = str(r["guardian"])
             out.append(
                 {
                     "input": f"Draft a message to confirm weekend start on Friday {date_str} after school; {who} is picking up.",
@@ -136,8 +141,8 @@ def _swap_messages_for_records(records: List[DayRecord]) -> List[Dict[str, str]]
             )
 
         # Sunday exception messaging
-        if day == "sunday":
-            who = r["guardian"]
+        if day is Weekday.SUNDAY:
+            who = str(r["guardian"])
             if r.get("handoff") == "dad_to_mom_by_1pm":
                 out.append(
                     {
@@ -159,10 +164,10 @@ def _swap_messages_for_records(records: List[DayRecord]) -> List[Dict[str, str]]
 # ---------- Writers ----------
 
 
-def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel) -> Dict[str, Path]:
+def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel) -> dict[str, Path]:
     plan.outdir.mkdir(parents=True, exist_ok=True)
     records = resolve_range(plan.start, plan.weeks, cfg)
-    paths: Dict[str, Path] = {}
+    paths: dict[str, Path] = {}
 
     if "csv" in plan.formats:
         p = plan.outdir / f"schedule_{plan.start.isoformat()}_{plan.weeks}w.csv"

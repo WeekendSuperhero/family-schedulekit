@@ -2,16 +2,16 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+
 from .models import ScheduleConfigModel
 from .resources import load_template
 
 
-@dataclass
+@dataclass(slots=True)
 class InitParams:
     mom: str
     dad: str
-    children: List[str]
+    children: list[str]
     template: str = "generic"
     outfile: Path = Path("schema/my-schedule.json")
     overwrite: bool = False

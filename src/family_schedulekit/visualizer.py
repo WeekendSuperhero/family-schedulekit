@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 try:  # pragma: no cover - exercised via optional dependency in tests
     from PIL import Image, ImageDraw, ImageFont
 except ImportError:  # pragma: no cover - fallback evaluated at runtime
     Image = ImageDraw = ImageFont = None  # type: ignore[assignment]
 
-DayRecord = Dict[str, object]
+from .models import Weekday
 
-Palette = Dict[str, Tuple[int, int, int]]
+type DayRecord = dict[str, object]
+type Palette = dict[str, tuple[int, int, int]]
 
 _DEFAULT_PALETTE: Palette = {
     "mom": (242, 139, 130),  # soft red
@@ -20,17 +20,17 @@ _DEFAULT_PALETTE: Palette = {
     "unknown": (200, 200, 200),
 }
 
-_WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+_WEEKDAYS: tuple[Weekday, ...] = tuple(Weekday)
 
 
-def _hex_to_rgb(value: str) -> Tuple[int, int, int]:
+def _hex_to_rgb(value: str) -> tuple[int, int, int]:
     value = value.strip().lstrip("#")
     if len(value) != 6:
         raise ValueError(f"Invalid color value '{value}'. Use 6-character hex (e.g. #F28B82).")
     return tuple(int(value[i : i + 2], 16) for i in range(0, 6, 2))  # type: ignore[return-value]
 
 
-def _normalize_palette(palette: Dict[str, str] | None) -> Palette:
+def _normalize_palette(palette: dict[str, str | tuple[int, int, int]] | None) -> Palette:
     colors = _DEFAULT_PALETTE.copy()
     if palette:
         for key, val in palette.items():
@@ -39,11 +39,11 @@ def _normalize_palette(palette: Dict[str, str] | None) -> Palette:
 
 
 def render_schedule_image(
-    records: List[DayRecord],
+    records: list[DayRecord],
     start: date,
     weeks: int,
     out_path: Path,
-    palette: Dict[str, str] | None = None,
+    palette: dict[str, str | tuple[int, int, int]] | None = None,
 ) -> Path:
     """
     Render a PNG snapshot of the schedule over a given range.
@@ -62,7 +62,9 @@ def render_schedule_image(
         raise ValueError("No schedule records to render.")
 
     if Image is None or ImageDraw is None or ImageFont is None:
-        raise RuntimeError("Pillow is required for image exports. Install with `pip install family-schedulekit[visual]`.")
+        raise RuntimeError(
+            "Pillow is required for image exports. Install via `uv sync --extra dev` or include Pillow."
+        )
 
     colors = _normalize_palette(palette)
 
@@ -92,7 +94,7 @@ def render_schedule_image(
     # Day labels and cells
     for row, weekday in enumerate(_WEEKDAYS):
         y0 = top_margin + row * cell_h
-        draw.text((10, y0 + cell_h / 2 - 8), weekday.capitalize(), fill="black", font=font)
+        draw.text((10, y0 + cell_h / 2 - 8), weekday.value.capitalize(), fill="black", font=font)
         for col in range(weeks):
             x0 = left_margin + col * cell_w
             rect = (x0, y0, x0 + cell_w, y0 + cell_h)
@@ -120,22 +122,25 @@ def render_schedule_image(
     return out_path
 
 
-def _records_for_week(records: List[DayRecord], idx: int) -> List[DayRecord]:
+def _records_for_week(records: list[DayRecord], idx: int) -> list[DayRecord]:
     base = idx * 7
     return records[base : base + 7]
 
 
-def _build_index(records: List[DayRecord]) -> Dict[Tuple[int, str], DayRecord]:
-    index: Dict[Tuple[int, str], DayRecord] = {}
+def _build_index(records: list[DayRecord]) -> dict[tuple[int, Weekday], DayRecord]:
+    index: dict[tuple[int, Weekday], DayRecord] = {}
     for idx, record in enumerate(records):
         week_idx = idx // 7
-        weekday = str(record.get("weekday", "")).lower()
-        if weekday in _WEEKDAYS:
-            index[(week_idx, weekday)] = record
+        weekday_value = str(record.get("weekday", "")).lower()
+        try:
+            weekday = Weekday(weekday_value)
+        except ValueError:
+            continue
+        index[(week_idx, weekday)] = record
     return index
 
 
-def _week_label(records: List[DayRecord], start: date, week_idx: int) -> str:
+def _week_label(records: list[DayRecord], start: date, week_idx: int) -> str:
     if records:
         cw = records[0]["calendar_week"]
         return f"CW{cw}"

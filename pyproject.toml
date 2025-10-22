@@ -7,7 +7,7 @@ name = "family-schedulekit"
 version = "0.1.0"
 description = "AI-friendly schema + utilities for co-parenting / custody schedules (ISO week based)."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 authors = [{ name = "Weekend Superhero LLC" }]
 license = { text = "MIT" }
 keywords = ["custody", "co-parenting", "schedule", "iso8601", "calendar", "ai"]
@@ -23,7 +23,7 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Utilities",
   "Typing :: Typed"
 ]
@@ -60,12 +60,12 @@ dev = [
 
 [tool.ruff]
 line-length = 160
-target-version = "py313"
+target-version = "py314"
 lint.select = ["E", "F", "W", "I", "UP"]
 lint.ignore = ["E203"]
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_unused_configs = true
