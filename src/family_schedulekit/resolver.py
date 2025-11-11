@@ -38,7 +38,17 @@ def resolve_weekday_rule(rule: Guardian | WeekdayRule, cw: int) -> Guardian:
     return rule.otherwise
 
 
-def resolve_for_date(dt: date, cfg: ScheduleConfigModel) -> dict[str, object]:
+def resolve_for_date(dt: date, cfg: ScheduleConfigModel, _check_handoff: bool = True) -> dict[str, object]:
+    """Resolve custody for a specific date.
+
+    Args:
+        dt: The date to resolve
+        cfg: Schedule configuration
+        _check_handoff: Internal flag to prevent infinite recursion
+
+    Returns:
+        Dictionary with date, calendar_week, guardian, and handoff information
+    """
     iso_date = dt.isoformat()
     cw = iso_week(dt)
     day = Weekday.from_python_weekday(dt.weekday())
@@ -62,7 +72,12 @@ def resolve_for_date(dt: date, cfg: ScheduleConfigModel) -> dict[str, object]:
                 guardian = cfg.rules.weekends.odd_weeks.friday
             else:
                 guardian = resolve_weekday_rule(cfg.rules.weekends.even_weeks.friday, cw)
-            handoff = "after_school"
+
+            # Only set "after_school" handoff if there's a custody change from Thursday
+            yesterday = dt - timedelta(days=1)
+            yesterday_result = resolve_for_date(yesterday, cfg, _check_handoff=False)
+            if yesterday_result["guardian"] != guardian:
+                handoff = "after_school"
         case Weekday.SATURDAY:
             if cw % 2 == 1:
                 guardian = cfg.rules.weekends.odd_weeks.saturday
@@ -77,16 +92,26 @@ def resolve_for_date(dt: date, cfg: ScheduleConfigModel) -> dict[str, object]:
             raise AssertionError(f"Unhandled weekday: {day!r}")
 
     # Apply special handoff rules if configured for this weekday
-    if day in cfg.handoff.special_handoffs:
+    # Special handoffs only apply when there's a custody change from one guardian to another
+    if _check_handoff and day in cfg.handoff.special_handoffs:
         special = cfg.handoff.special_handoffs[day]
-        # Only apply if the current guardian matches the "from" guardian
-        if guardian == special.from_guardian:
-            if special.description:
-                handoff = special.description
-            else:
-                # Auto-generate description
-                time_str = special.time.format()
-                handoff = f"{special.from_guardian}_to_{special.to_guardian}_{time_str}"
+        # Only apply if:
+        # 1. Current guardian matches "from_guardian"
+        # 2. There's an actual custody transition (from != to)
+        # 3. The next guardian would be different
+        if guardian == special.from_guardian and special.from_guardian != special.to_guardian:
+            # Check what happens the next day to see if it's actually a transition
+            next_day = dt + timedelta(days=1)
+            next_result = resolve_for_date(next_day, cfg, _check_handoff=False)
+
+            # Only apply handoff if next day's guardian matches our "to_guardian"
+            if next_result["guardian"] == special.to_guardian:
+                if special.description:
+                    handoff = special.description
+                else:
+                    # Auto-generate description
+                    time_str = special.time.format()
+                    handoff = f"{special.from_guardian}_to_{special.to_guardian}_{time_str}"
 
     return {"date": iso_date, "calendar_week": cw, "guardian": guardian, "handoff": handoff}
 

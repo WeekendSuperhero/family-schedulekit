@@ -18,8 +18,8 @@ def test_weekday_assignments():
 
 
 def test_weekend_even_cw6():
-    res = resolve_for_date(date(2025, 2, 7), CFG)  # Friday CW6
-    assert res["guardian"] == "dad" and res["handoff"] == "after_school"
+    res = resolve_for_date(date(2025, 2, 7), CFG)  # Friday CW6 (dad has Thu & Fri, no change)
+    assert res["guardian"] == "dad" and res["handoff"] is None
     res = resolve_for_date(date(2025, 2, 8), CFG)  # Saturday CW6
     assert res["guardian"] == "dad" and res["handoff"] is None
     res = resolve_for_date(date(2025, 2, 9), CFG)  # Sunday CW6
@@ -27,8 +27,8 @@ def test_weekend_even_cw6():
 
 
 def test_weekend_even_cw8_sunday_exception():
-    res = resolve_for_date(date(2025, 2, 21), CFG)  # Friday CW8
-    assert res["guardian"] == "dad" and res["handoff"] == "after_school"
+    res = resolve_for_date(date(2025, 2, 21), CFG)  # Friday CW8 (dad has Thu & Fri, no change)
+    assert res["guardian"] == "dad" and res["handoff"] is None
     res = resolve_for_date(date(2025, 2, 23), CFG)  # Sunday CW8
     assert res["guardian"] == "dad" and res["handoff"] == "dad_to_mom_by_1pm"
 
