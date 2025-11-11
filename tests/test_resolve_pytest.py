@@ -1,5 +1,6 @@
 from datetime import date
-from family_schedulekit import iso_week, resolve_for_date, load_default_config
+
+from family_schedulekit import iso_week, load_default_config, resolve_for_date
 
 CFG = load_default_config()
 

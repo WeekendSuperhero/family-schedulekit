@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Literal
 
 from .models import ScheduleConfigModel, Weekday
-from .resolver import iso_week, resolve_for_date
+from .resolver import resolve_for_date
 
 type DayRecord = dict[str, object]
 type ExportFormat = Literal["csv", "json", "jsonl", "ics", "md", "png"]
@@ -82,7 +82,7 @@ def _ical_for_records(records: list[DayRecord]) -> str:
         d = date.fromisoformat(r["date"])  # type: ignore[arg-type]
         start = d.strftime("%Y%m%d")
         end = (d + timedelta(days=1)).strftime("%Y%m%d")
-        summary = f"{r['weekday'].capitalize()}: {r['guardian'].capitalize()}"
+        summary = f"{str(r['weekday']).capitalize()}: {str(r['guardian']).capitalize()}"
         desc = f"ISO week {r['calendar_week']} ({r['calendar_week_system']})"
         if r.get("handoff") == "after_school":
             desc += "\\nHandoff: after school (Friday)."
@@ -118,7 +118,6 @@ def _swap_messages_for_records(records: list[DayRecord]) -> list[dict[str, str]]
     for r in records:
         day = Weekday(str(r["weekday"]))
         date_str = str(r["date"])  # ISO string from resolve_for_date
-        cw = r["calendar_week"]
 
         # Weekday school handoff reminders (Mon-Thu)
         if day in (Weekday.MONDAY, Weekday.TUESDAY, Weekday.WEDNESDAY, Weekday.THURSDAY):
@@ -195,18 +194,17 @@ def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel) -> dict[str, Path]
     if "md" in plan.formats:
         p = plan.outdir / f"summary_{plan.start.isoformat()}_{plan.weeks}w.md"
         md = [
-            f"# Family Schedule Summary",
+            "# Family Schedule Summary",
             f"- Range start: **{plan.start.isoformat()}**",
             f"- Weeks: **{plan.weeks}**",
-            f"- ISO 8601 calendar weeks included.",
+            "- ISO 8601 calendar weeks included.",
             "",
             "| Date | Weekday | CW | Guardian | Handoff |",
             "|---|---:|---:|---|---|",
         ]
         for r in records:
-            md.append(
-                f"| {r['date']} | {str(r['weekday']).capitalize()} | {r['calendar_week']} | {str(r['guardian']).capitalize()} | {'' if r['handoff'] is None else r['handoff']} |"
-            )
+            handoff_str = "" if r["handoff"] is None else str(r["handoff"])
+            md.append(f"| {r['date']} | {str(r['weekday']).capitalize()} | {r['calendar_week']} | {str(r['guardian']).capitalize()} | {handoff_str} |")
         p.write_text("\n".join(md), encoding="utf-8")
         paths["md"] = p
 
@@ -214,7 +212,17 @@ def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel) -> dict[str, Path]
         png_path = plan.outdir / f"visual_{plan.start.isoformat()}_{plan.weeks}w.png"
         from .visualizer import render_schedule_image
 
-        render_schedule_image(records, plan.start, plan.weeks, png_path)
+        # Convert config visualization palette to dict for render_schedule_image
+        palette = {
+            "mom": cfg.visualization.mom,
+            "dad": cfg.visualization.dad,
+        }
+        if cfg.visualization.holiday:
+            palette["holiday"] = cfg.visualization.holiday
+        if cfg.visualization.unknown:
+            palette["unknown"] = cfg.visualization.unknown
+
+        render_schedule_image(records, plan.start, plan.weeks, png_path, palette=palette)
         paths["png"] = png_path
 
     return paths

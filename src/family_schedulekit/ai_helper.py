@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from .models import ScheduleConfigModel
@@ -64,14 +65,29 @@ def generate_ai_context(
 
 def _generate_rules_summary(cfg: ScheduleConfigModel) -> dict[str, str]:
     """Generate human-readable rules summary."""
+    from .models import WeekdayRule
+
+    # Describe even week Sunday rule
+    sunday_rule = cfg.rules.weekends.even_weeks.sunday
+    if isinstance(sunday_rule, WeekdayRule) and sunday_rule.modulo_rules:
+        # Find the common mod 4 pattern
+        mod4_rule = next((r for r in sunday_rule.modulo_rules if r.modulo == 4 and r.remainder == 0), None)
+        if mod4_rule:
+            sunday_desc = f"Sunday varies (CW%4==0: {mod4_rule.guardian} until 1pm, else: {sunday_rule.otherwise})"
+            special_sunday = f"On even weeks where CW mod 4 equals 0 (CW4, CW8, CW12...), {mod4_rule.guardian} has Sunday but must return children by 1 PM"
+        else:
+            sunday_desc = "Sunday uses custom modulo rules"
+            special_sunday = "Custom modulo rules apply to even-week Sundays"
+    else:
+        sunday_desc = f"Sunday: {sunday_rule}"
+        special_sunday = "No special Sunday rules"
+
     return {
         "weekday_pattern": (f"Monday: {cfg.parties.mom}, Tuesday: {cfg.parties.dad}, Wednesday: {cfg.parties.mom}, Thursday: {cfg.parties.dad}"),
         "weekend_odd_weeks": f"Odd ISO weeks (CW1, CW3, CW5...): Full weekend with {cfg.parties.mom}",
-        "weekend_even_weeks": (
-            f"Even ISO weeks (CW2, CW4, CW6...): Friday-Saturday with {cfg.parties.dad}, "
-            f"Sunday varies (CW%4==0: {cfg.parties.dad} until 1pm, else: {cfg.parties.mom})"
-        ),
-        "special_sunday_rule": (f"On even weeks where CW mod 4 equals 0 (CW4, CW8, CW12...), {cfg.parties.dad} has Sunday but must return children by 1 PM"),
+        "weekend_even_weeks": (f"Even ISO weeks (CW2, CW4, CW6...): Friday-Saturday patterns may use modulo rules, {sunday_desc}"),
+        "special_sunday_rule": special_sunday,
+        "modulo_support": "Even-week days (Friday, Saturday, Sunday) support flexible modulo rules for complex rotation patterns",
     }
 
 
@@ -259,18 +275,77 @@ def _generate_json_schema() -> dict[str, Any]:
                                 "type": "object",
                                 "required": ["friday", "saturday", "sunday"],
                                 "properties": {
-                                    "friday": {"type": "string", "enum": ["mom", "dad"]},
-                                    "saturday": {"type": "string", "enum": ["mom", "dad"]},
-                                    "sunday": {
-                                        "type": "object",
-                                        "required": ["cw_mod4_equals_0", "otherwise"],
-                                        "properties": {
-                                            "cw_mod4_equals_0": {
-                                                "type": "string",
-                                                "enum": ["mom", "dad"],
+                                    "friday": {
+                                        "oneOf": [
+                                            {"type": "string", "enum": ["mom", "dad"]},
+                                            {
+                                                "type": "object",
+                                                "required": ["modulo_rules", "otherwise"],
+                                                "properties": {
+                                                    "modulo_rules": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "required": ["modulo", "remainder", "guardian"],
+                                                            "properties": {
+                                                                "modulo": {"type": "integer", "minimum": 2},
+                                                                "remainder": {"type": "integer", "minimum": 0},
+                                                                "guardian": {"type": "string", "enum": ["mom", "dad"]},
+                                                            },
+                                                        },
+                                                    },
+                                                    "otherwise": {"type": "string", "enum": ["mom", "dad"]},
+                                                },
                                             },
-                                            "otherwise": {"type": "string", "enum": ["mom", "dad"]},
-                                        },
+                                        ]
+                                    },
+                                    "saturday": {
+                                        "oneOf": [
+                                            {"type": "string", "enum": ["mom", "dad"]},
+                                            {
+                                                "type": "object",
+                                                "required": ["modulo_rules", "otherwise"],
+                                                "properties": {
+                                                    "modulo_rules": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "required": ["modulo", "remainder", "guardian"],
+                                                            "properties": {
+                                                                "modulo": {"type": "integer", "minimum": 2},
+                                                                "remainder": {"type": "integer", "minimum": 0},
+                                                                "guardian": {"type": "string", "enum": ["mom", "dad"]},
+                                                            },
+                                                        },
+                                                    },
+                                                    "otherwise": {"type": "string", "enum": ["mom", "dad"]},
+                                                },
+                                            },
+                                        ]
+                                    },
+                                    "sunday": {
+                                        "oneOf": [
+                                            {"type": "string", "enum": ["mom", "dad"]},
+                                            {
+                                                "type": "object",
+                                                "required": ["modulo_rules", "otherwise"],
+                                                "properties": {
+                                                    "modulo_rules": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "required": ["modulo", "remainder", "guardian"],
+                                                            "properties": {
+                                                                "modulo": {"type": "integer", "minimum": 2},
+                                                                "remainder": {"type": "integer", "minimum": 0},
+                                                                "guardian": {"type": "string", "enum": ["mom", "dad"]},
+                                                            },
+                                                        },
+                                                    },
+                                                    "otherwise": {"type": "string", "enum": ["mom", "dad"]},
+                                                },
+                                            },
+                                        ]
                                     },
                                 },
                             },
@@ -287,7 +362,7 @@ def _generate_json_schema() -> dict[str, Any]:
     }
 
 
-def _generate_ai_instructions() -> Dict[str, Any]:
+def _generate_ai_instructions() -> dict[str, Any]:
     """Generate instructions for AI to use the schedule."""
     return {
         "understanding_schedule": [
@@ -317,9 +392,9 @@ def _generate_ai_instructions() -> Dict[str, Any]:
 
 
 def export_ai_context(
-    config_path: Optional[str] = None,
-    output_path: Optional[str] = None,
-    target_date: Optional[str] = None,
+    config_path: str | None = None,
+    output_path: str | None = None,
+    target_date: str | None = None,
     weeks_ahead: int = 4,
 ) -> str:
     """
@@ -334,9 +409,6 @@ def export_ai_context(
     Returns:
         JSON string of the AI context
     """
-    from pathlib import Path
-    from datetime import datetime
-
     # Load configuration
     if config_path:
         cfg = ScheduleConfigModel.model_validate_json(Path(config_path).read_text())

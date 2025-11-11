@@ -7,7 +7,19 @@
   "calendar_week_system": "ISO8601",
   "handoff": {
     "weekdays": "school",
-    "sunday_dad_to_mom": "by_1pm"
+    "special_handoffs": {
+      "sunday": {
+        "from_guardian": "dad",
+        "to_guardian": "mom",
+        "time": {
+          "hour": 13,
+          "minute": 0,
+          "use_24h": false,
+          "by": true
+        },
+        "description": "dad_to_mom_by_1pm"
+      }
+    }
   },
   "rules": {
     "weekdays": {
@@ -26,11 +38,23 @@
         "friday": "dad",
         "saturday": "dad",
         "sunday": {
-          "cw_mod4_equals_0": "dad",
+          "modulo_rules": [
+            {
+              "modulo": 4,
+              "remainder": 0,
+              "guardian": "dad"
+            }
+          ],
           "otherwise": "mom"
         }
       }
     }
   },
-  "holidays": {}
+  "holidays": {},
+  "visualization": {
+    "mom": "hot_pink",
+    "dad": "midnight_blue",
+    "holiday": "light_blue",
+    "unknown": "gray"
+  }
 }

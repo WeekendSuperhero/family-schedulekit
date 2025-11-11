@@ -14,10 +14,44 @@ type DayRecord = dict[str, object]
 type Palette = dict[str, tuple[int, int, int]]
 
 _DEFAULT_PALETTE: Palette = {
-    "mom": (242, 139, 130),  # soft red
-    "dad": (129, 201, 149),  # soft green
+    "mom": (255, 20, 147),  # hot pink (DeepPink)
+    "dad": (25, 25, 112),  # darker blue (MidnightBlue)
     "holiday": (174, 203, 248),  # light blue override
     "unknown": (200, 200, 200),
+}
+
+# Named color presets - easy to remember names mapped to RGB values
+_NAMED_COLORS: dict[str, tuple[int, int, int]] = {
+    # Pinks
+    "pink": (255, 192, 203),
+    "hot_pink": (255, 20, 147),
+    "deep_pink": (255, 20, 147),
+    # Blues
+    "blue": (0, 0, 255),
+    "dark_blue": (0, 0, 139),
+    "midnight_blue": (25, 25, 112),
+    "light_blue": (174, 203, 248),
+    "sky_blue": (135, 206, 235),
+    # Greens
+    "green": (0, 128, 0),
+    "mint_green": (129, 201, 149),
+    "forest_green": (34, 139, 34),
+    # Purples
+    "purple": (128, 0, 128),
+    "lavender": (230, 230, 250),
+    # Oranges/Reds
+    "orange": (255, 165, 0),
+    "coral": (242, 139, 130),
+    "red": (255, 0, 0),
+    "crimson": (220, 20, 60),
+    # Yellows
+    "yellow": (255, 255, 0),
+    "gold": (255, 215, 0),
+    # Grays
+    "gray": (200, 200, 200),
+    "grey": (200, 200, 200),
+    "light_gray": (211, 211, 211),
+    "light_grey": (211, 211, 211),
 }
 
 _WEEKDAYS: tuple[Weekday, ...] = tuple(Weekday)
@@ -30,12 +64,37 @@ def _hex_to_rgb(value: str) -> tuple[int, int, int]:
     return tuple(int(value[i : i + 2], 16) for i in range(0, 6, 2))  # type: ignore[return-value]
 
 
+def _resolve_color_value(value: str | tuple[int, int, int]) -> tuple[int, int, int]:
+    """Resolve a color value from named color, hex string, or RGB tuple."""
+    if isinstance(value, tuple):
+        return value
+
+    # Check if it's a named color
+    if value.lower() in _NAMED_COLORS:
+        return _NAMED_COLORS[value.lower()]
+
+    # Otherwise treat as hex string
+    return _hex_to_rgb(value)
+
+
 def _normalize_palette(palette: dict[str, str | tuple[int, int, int]] | None) -> Palette:
     colors = _DEFAULT_PALETTE.copy()
     if palette:
         for key, val in palette.items():
-            colors[key] = _hex_to_rgb(val) if isinstance(val, str) else val
+            colors[key] = _resolve_color_value(val)
     return colors
+
+
+def _get_text_color(bg_color: tuple[int, int, int]) -> str:
+    """
+    Determine text color (black or white) based on background luminance.
+    Uses relative luminance formula from WCAG 2.0.
+    """
+    r, g, b = bg_color
+    # Calculate relative luminance
+    luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    # Use white text on dark backgrounds, black on light backgrounds
+    return "white" if luminance < 0.5 else "black"
 
 
 def render_schedule_image(
@@ -66,51 +125,82 @@ def render_schedule_image(
 
     colors = _normalize_palette(palette)
 
-    # Base layout constants (unscaled)
-    base_cell_w = 160
-    base_cell_h = 120
+    # Base layout constants (reasonable image size)
+    base_cell_w = 250
+    base_cell_h = 200
     left_margin = 200
-    top_margin = 160
-    grid_padding = 40
+    top_margin = 200
+    grid_padding = 50
+    bottom_legend_space = 250
     columns = len(_WEEKDAYS)
 
     width = left_margin + columns * base_cell_w + grid_padding
-    height = top_margin + weeks * base_cell_h + grid_padding
+    height = top_margin + weeks * base_cell_h + grid_padding + bottom_legend_space
 
-    scale = 2
-    scaled_width = width * scale
-    scaled_height = height * scale
-    cell_w = base_cell_w * scale
-    cell_h = base_cell_h * scale
-    left_offset = left_margin * scale
-    top_offset = top_margin * scale
+    # No scaling - use dimensions directly
+    scaled_width = width
+    scaled_height = height
+    cell_w = base_cell_w
+    cell_h = base_cell_h
+    left_offset = left_margin
+    top_offset = top_margin
 
     image = Image.new("RGB", (scaled_width, scaled_height), "white")
     draw = ImageDraw.Draw(image)
 
-    try:
-        header_font = ImageFont.truetype("DejaVuSans.ttf", int(32 * scale))
-        cell_font = ImageFont.truetype("DejaVuSans.ttf", int(26 * scale))
-    except OSError:
+    # Try to load bold fonts, fall back to regular if not available
+    font_options = [
+        "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+        "/Library/Fonts/Arial Bold.ttf",
+        "DejaVuSans-Bold.ttf",
+        "Arial-Bold.ttf",
+        "Helvetica-Bold.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+        "DejaVuSans.ttf",
+    ]
+
+    loaded_font = None
+    for font_path in font_options:
+        try:
+            loaded_font = font_path
+            # Test load with small size
+            ImageFont.truetype(font_path, 12)
+            break
+        except OSError:
+            continue
+
+    if loaded_font:
+        try:
+            # Bold fonts for readability
+            header_font: ImageFont.ImageFont | ImageFont.FreeTypeFont = ImageFont.truetype(loaded_font, 30)
+            cell_font: ImageFont.ImageFont | ImageFont.FreeTypeFont = ImageFont.truetype(loaded_font, 20)
+            legend_font: ImageFont.ImageFont | ImageFont.FreeTypeFont = ImageFont.truetype(loaded_font, 24)
+        except OSError:
+            header_font = ImageFont.load_default()
+            cell_font = ImageFont.load_default()
+            legend_font = ImageFont.load_default()
+    else:
         header_font = ImageFont.load_default()
         cell_font = ImageFont.load_default()
+        legend_font = ImageFont.load_default()
 
     record_index = _build_index(records)
 
-    def _font_bbox(font: ImageFont.ImageFont, text: str) -> tuple[int, int, int, int]:
+    def _font_bbox(font: ImageFont.ImageFont | ImageFont.FreeTypeFont, text: str) -> tuple[int, int, int, int]:
         try:
-            return font.getbbox(text)
+            bbox = font.getbbox(text)
+            return (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))
         except AttributeError:
-            w, h = font.getsize(text)
-            return (0, 0, w, h)
+            # Fallback for older Pillow versions
+            return (0, 0, 10, 10)
 
-    def _draw_text_center(text: str, x: int, y: int, font: ImageFont.ImageFont):
+    def _draw_text_center(text: str, x: int, y: int, font: ImageFont.ImageFont | ImageFont.FreeTypeFont):
         bbox = _font_bbox(font, text)
         tw = bbox[2] - bbox[0]
         th = bbox[3] - bbox[1]
         draw.text((x - tw // 2, y - th // 2), text, fill="black", font=font)
 
-    def _line_height(font: ImageFont.ImageFont) -> int:
+    def _line_height(font: ImageFont.ImageFont | ImageFont.FreeTypeFont) -> int:
         bbox = _font_bbox(font, "Hg")
         return bbox[3] - bbox[1]
 
@@ -133,32 +223,75 @@ def render_schedule_image(
             y0 = top_offset + row * cell_h
             rect = (x0, y0, x0 + cell_w, y0 + cell_h)
             record = record_index.get((row, weekday))
-            guardian = (record or {}).get("guardian", "unknown")
+            guardian = str((record or {}).get("guardian", "unknown"))
             color = colors.get(guardian, colors["unknown"])
-            draw.rectangle(rect, fill=color, outline="black", width=scale)
+            draw.rectangle(rect, fill=color, outline="black", width=3)
 
             if not record:
                 continue
 
-            line_x = x0 + 12 * scale
-            line_y = y0 + 14 * scale
-            line_spacing = _line_height(cell_font) + 6 * scale
+            # Determine text color based on background color for accessibility
+            text_color = _get_text_color(color)
 
-            draw.text((line_x, line_y), str(record["date"]), fill="black", font=cell_font)
-            draw.text((line_x, line_y + line_spacing), f"{guardian.capitalize()}", fill="black", font=cell_font)
+            # Center text in cell
+            cell_center_x = x0 + cell_w // 2
+            cell_center_y = y0 + cell_h // 2
 
+            # Prepare all text lines
+            lines = [str(record["date"]), guardian.capitalize()]
             handoff = record.get("handoff")
             if handoff and handoff != "school":
-                draw.text(
-                    (line_x, line_y + 2 * line_spacing),
-                    _format_handoff(handoff),
-                    fill="black",
-                    font=cell_font,
-                )
+                lines.append(_format_handoff(handoff))
+
+            # Calculate total height of text block
+            line_spacing = _line_height(cell_font) + 5
+            total_text_height = len(lines) * line_spacing
+
+            # Start drawing from centered position
+            start_y = cell_center_y - total_text_height // 2
+
+            for i, line in enumerate(lines):
+                bbox = _font_bbox(cell_font, line)
+                text_width = bbox[2] - bbox[0]
+                text_x = cell_center_x - text_width // 2
+                text_y = start_y + i * line_spacing
+                draw.text((text_x, text_y), line, fill=text_color, font=cell_font)
+
+    # Draw legend at the bottom
+    legend_y = top_offset + weeks * cell_h + grid_padding
+    legend_x_start = left_offset
+    legend_box_size = 100
+    legend_spacing = 150
+
+    # Get unique guardians from records
+    guardians = set()
+    for record in records:
+        guardian = str((record or {}).get("guardian", ""))
+        if guardian and guardian != "unknown":
+            guardians.add(guardian)
+
+    # Draw legend items
+    x_pos = legend_x_start
+    for idx, guardian in enumerate(sorted(guardians)):
+        color = colors.get(guardian, colors["unknown"])
+        text_color = _get_text_color(color)
+
+        # Draw color box
+        box_rect = (x_pos, legend_y, x_pos + legend_box_size, legend_y + legend_box_size)
+        draw.rectangle(box_rect, fill=color, outline="black", width=4)
+
+        # Draw label
+        label_x = x_pos + legend_box_size + 30
+        label_y = legend_y + legend_box_size // 2
+        draw.text((label_x, label_y - _line_height(legend_font) // 2), guardian.capitalize(), fill="black", font=legend_font)
+
+        # Calculate width for next item
+        bbox = _font_bbox(legend_font, guardian.capitalize())
+        text_width = bbox[2] - bbox[0]
+        x_pos += legend_box_size + text_width + legend_spacing
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    resample = getattr(Image, "Resampling", Image).LANCZOS
-    image.resize((width, height), resample=resample).save(out_path, format="PNG")
+    image.save(out_path, format="PNG")
     return out_path
 
 

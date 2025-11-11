@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "family-schedulekit"
-version = "0.1.0"
+version = "0.3.0"
 description = "AI-friendly schema + utilities for co-parenting / custody schedules (ISO week based)."
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 authors = [{ name = "Weekend Superhero LLC" }]
 license = { text = "MIT" }
 keywords = ["custody", "co-parenting", "schedule", "iso8601", "calendar", "ai"]
@@ -23,6 +23,7 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "Topic :: Utilities",
   "Typing :: Typed"

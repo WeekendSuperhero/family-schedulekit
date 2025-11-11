@@ -1,32 +1,43 @@
+from .ai_helper import export_ai_context, generate_ai_context
+from .config import DEFAULT_CONFIG_DIR, DEFAULT_CONFIG_FILE, config_exists, ensure_config_dir, get_config_path
+from .generator import InitParams, generate_config, write_config
 from .models import (
-    Parties,
+    CalendarWeekModuloRule,
+    Guardian,
     Handoff,
-    WeekdayRules,
-    SundayRule,
-    WeekendOdd,
-    WeekendEven,
-    Weekends,
+    HandoffTime,
+    Parties,
     Rules,
     ScheduleConfigModel,
-    Guardian,
+    SpecialHandoff,
+    VisualizationPalette,
     Weekday,
+    WeekdayHandoffs,
+    WeekdayRule,
+    WeekdayRules,
+    WeekendEven,
+    WeekendOdd,
+    Weekends,
 )
 from .resolver import iso_week, resolve_for_date, resolve_week_of
-from .resources import load_default_config, default_config_text, list_templates, load_template
-from .generator import generate_config, write_config, InitParams
-from .ai_helper import generate_ai_context, export_ai_context
+from .resources import default_config_text, list_templates, load_default_config, load_template
 from .visualizer import render_schedule_image
 
 __all__ = [
     "Parties",
     "Handoff",
+    "HandoffTime",
+    "SpecialHandoff",
+    "WeekdayHandoffs",
     "WeekdayRules",
-    "SundayRule",
+    "CalendarWeekModuloRule",
+    "WeekdayRule",
     "WeekendOdd",
     "WeekendEven",
     "Weekends",
     "Rules",
     "ScheduleConfigModel",
+    "VisualizationPalette",
     "Guardian",
     "Weekday",
     "iso_week",
@@ -42,4 +53,9 @@ __all__ = [
     "generate_ai_context",
     "export_ai_context",
     "render_schedule_image",
+    "DEFAULT_CONFIG_DIR",
+    "DEFAULT_CONFIG_FILE",
+    "config_exists",
+    "ensure_config_dir",
+    "get_config_path",
 ]
