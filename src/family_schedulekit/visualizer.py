@@ -224,7 +224,7 @@ def render_schedule_image(
         cell_font = ImageFont.load_default()
         legend_font = ImageFont.load_default()
 
-    record_index = _build_index(records)
+    record_index = _build_index(records, start, start_weekday.lower() == "sunday")
 
     def _font_bbox(font: ImageFont.ImageFont | ImageFont.FreeTypeFont, text: str) -> tuple[int, int, int, int]:
         try:
@@ -369,15 +369,39 @@ def _records_for_week(records: list[DayRecord], idx: int) -> list[DayRecord]:
     return records[base : base + 7]
 
 
-def _build_index(records: list[DayRecord]) -> dict[tuple[int, Weekday], DayRecord]:
+def _build_index(records: list[DayRecord], start: date, sunday_first: bool = False) -> dict[tuple[int, Weekday], DayRecord]:
     index: dict[tuple[int, Weekday], DayRecord] = {}
+
     for idx, record in enumerate(records):
-        week_idx = idx // 7
+        date_str = str(record.get("date", ""))
+        try:
+            record_date = date.fromisoformat(date_str)
+        except (ValueError, TypeError):
+            continue
+
         weekday_value = str(record.get("weekday", "")).lower()
         try:
             weekday = Weekday(weekday_value)
         except ValueError:
             continue
+
+        if sunday_first:
+            # For Sunday-first layout, calculate which visual row this date belongs to
+            # Adjust so that Sunday is day 0 of each visual week
+            days_since_start = (record_date - start).days
+            # Shift by 1 if start date is not Sunday, to align weeks properly
+            start_weekday_num = start.weekday()  # 0=Mon, 6=Sun
+            if start_weekday_num == 6:  # Start is Sunday
+                week_idx = days_since_start // 7
+            else:
+                # Shift to make the previous/same Sunday the start of week 0
+                days_since_sunday = (start_weekday_num + 1) % 7  # Days from last Sunday
+                adjusted_days = days_since_start + days_since_sunday
+                week_idx = adjusted_days // 7
+        else:
+            # Monday-first: simple division
+            week_idx = idx // 7
+
         index[(week_idx, weekday)] = record
     return index
 

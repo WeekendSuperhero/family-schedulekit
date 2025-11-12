@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "family-schedulekit"
-version = "0.5.0"
+version = "0.5.1"
 description = "AI-friendly schema + utilities for co-parenting / custody schedules (ISO week based)."
 readme = "README.md"
 requires-python = ">=3.13"
