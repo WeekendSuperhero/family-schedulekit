@@ -309,10 +309,40 @@
     },
     "holidays": {
       "type": "object",
-      "description": "Date-specific overrides in YYYY-MM-DD format",
+      "description": "Date-specific overrides in YYYY-MM-DD format (DEPRECATED: use swaps instead)",
       "additionalProperties": {
         "type": "string",
         "enum": ["mom", "dad"]
+      },
+      "default": {}
+    },
+    "swaps": {
+      "type": "object",
+      "description": "Date swaps/exceptions with optional colors and notes",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "guardian": {
+            "type": "string",
+            "enum": ["mom", "dad"],
+            "description": "Guardian who has custody on this swapped date"
+          },
+          "color": {
+            "type": "string",
+            "description": "Optional custom color (overrides automatic shading)",
+            "examples": ["red", "gold", "coral", "#FFD700"]
+          },
+          "handoff": {
+            "type": "string",
+            "description": "Optional handoff description for this swap"
+          },
+          "note": {
+            "type": "string",
+            "description": "Optional note explaining the swap (shown in visualizations)",
+            "examples": ["Christmas", "Spring break trade", "Vacation swap"]
+          }
+        },
+        "required": ["guardian"]
       },
       "default": {}
     },
@@ -343,13 +373,28 @@
           "description": "Color for unknown/error states (named color or hex string)",
           "default": "gray",
           "examples": ["gray", "light_gray", "#C8C8C8"]
+        },
+        "swap_shade_percent": {
+          "type": "integer",
+          "description": "Percentage to lighten/darken swap colors (0-100)",
+          "default": 20,
+          "minimum": 0,
+          "maximum": 100
+        },
+        "start_weekday": {
+          "type": "string",
+          "enum": ["monday", "sunday"],
+          "description": "First day of the week in PNG visualization (default: monday)",
+          "default": "monday"
         }
       },
       "default": {
         "mom": "hot_pink",
         "dad": "midnight_blue",
         "holiday": "light_blue",
-        "unknown": "gray"
+        "unknown": "gray",
+        "swap_shade_percent": 20,
+        "start_weekday": "monday"
       }
     }
   },

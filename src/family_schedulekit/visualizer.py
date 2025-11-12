@@ -55,6 +55,7 @@ _NAMED_COLORS: dict[str, tuple[int, int, int]] = {
 }
 
 _WEEKDAYS: tuple[Weekday, ...] = tuple(Weekday)
+_WEEKDAYS_SUNDAY_FIRST: tuple[Weekday, ...] = (Weekday.SUNDAY,) + _WEEKDAYS[:-1]
 
 
 def _hex_to_rgb(value: str) -> tuple[int, int, int]:
@@ -77,11 +78,15 @@ def _resolve_color_value(value: str | tuple[int, int, int]) -> tuple[int, int, i
     return _hex_to_rgb(value)
 
 
-def _normalize_palette(palette: dict[str, str | tuple[int, int, int]] | None) -> Palette:
+def _normalize_palette(palette: dict[str, str | tuple[int, int, int] | int] | None) -> Palette:
     colors = _DEFAULT_PALETTE.copy()
     if palette:
         for key, val in palette.items():
-            colors[key] = _resolve_color_value(val)
+            # Skip non-color fields like swap_shade_percent
+            if isinstance(val, int):
+                colors[key] = val  # type: ignore
+            else:
+                colors[key] = _resolve_color_value(val)
     return colors
 
 
@@ -97,12 +102,43 @@ def _get_text_color(bg_color: tuple[int, int, int]) -> str:
     return "white" if luminance < 0.5 else "black"
 
 
+def _adjust_color_brightness(color: tuple[int, int, int], percent: int, lighten: bool = True) -> tuple[int, int, int]:
+    """
+    Adjust color brightness by a percentage.
+
+    Args:
+        color: RGB tuple (r, g, b)
+        percent: Percentage to adjust (0-100)
+        lighten: True to lighten, False to darken
+
+    Returns:
+        Adjusted RGB tuple
+    """
+    r, g, b = color
+    factor = percent / 100.0
+
+    if lighten:
+        # Lighten: move towards white (255)
+        r = int(r + (255 - r) * factor)
+        g = int(g + (255 - g) * factor)
+        b = int(b + (255 - b) * factor)
+    else:
+        # Darken: move towards black (0)
+        r = int(r * (1 - factor))
+        g = int(g * (1 - factor))
+        b = int(b * (1 - factor))
+
+    # Clamp to valid RGB range
+    return (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
+
+
 def render_schedule_image(
     records: list[DayRecord],
     start: date,
     weeks: int,
     out_path: Path,
-    palette: dict[str, str | tuple[int, int, int]] | None = None,
+    palette: dict[str, str | tuple[int, int, int] | int] | None = None,
+    start_weekday: str = "monday",
 ) -> Path:
     """
     Render a PNG snapshot of the schedule over a given range.
@@ -113,6 +149,7 @@ def render_schedule_image(
         weeks: Number of weeks represented in `records`
         out_path: File path to write the PNG image
         palette: Optional mapping of guardian -> hex color (e.g. {"mom": "#F28B82"})
+        start_weekday: First day of week in visualization ("monday" or "sunday", default: "monday")
 
     Returns:
         Path to the written PNG file.
@@ -125,6 +162,9 @@ def render_schedule_image(
 
     colors = _normalize_palette(palette)
 
+    # Determine weekday order based on start_weekday
+    weekdays = _WEEKDAYS_SUNDAY_FIRST if start_weekday.lower() == "sunday" else _WEEKDAYS
+
     # Base layout constants (reasonable image size)
     base_cell_w = 250
     base_cell_h = 200
@@ -132,7 +172,7 @@ def render_schedule_image(
     top_margin = 200
     grid_padding = 50
     bottom_legend_space = 250
-    columns = len(_WEEKDAYS)
+    columns = len(weekdays)
 
     width = left_margin + columns * base_cell_w + grid_padding
     height = top_margin + weeks * base_cell_h + grid_padding + bottom_legend_space
@@ -206,7 +246,7 @@ def render_schedule_image(
 
     # Column headers (weekdays across the top)
     header_y = top_offset // 2
-    for col, weekday in enumerate(_WEEKDAYS):
+    for col, weekday in enumerate(weekdays):
         center_x = left_offset + col * cell_w + cell_w // 2
         _draw_text_center(weekday.value.capitalize(), center_x, header_y, header_font)
 
@@ -218,13 +258,37 @@ def render_schedule_image(
         # Week labels on the left
         _draw_text_center(week_label, left_offset // 2, row_center_y, header_font)
 
-        for col, weekday in enumerate(_WEEKDAYS):
+        for col, weekday in enumerate(weekdays):
             x0 = left_offset + col * cell_w
             y0 = top_offset + row * cell_h
             rect = (x0, y0, x0 + cell_w, y0 + cell_h)
             record = record_index.get((row, weekday))
             guardian = str((record or {}).get("guardian", "unknown"))
-            color = colors.get(guardian, colors["unknown"])
+
+            # Determine color - check for swap with custom color first
+            is_swap = (record or {}).get("is_swap", False)
+            swap_has_custom_color = False
+
+            if is_swap and "swap_color" in (record or {}):
+                # Swap with custom color specified
+                color = record["swap_color"]  # type: ignore
+                swap_has_custom_color = True
+            else:
+                # Regular guardian color
+                base_color = colors.get(guardian, colors["unknown"])
+
+                if is_swap and not swap_has_custom_color:
+                    # Swap without custom color - apply automatic shading
+                    swap_shade_percent = colors.get("swap_shade_percent", 20)
+                    # Decide whether to lighten or darken based on base color luminance
+                    r, g, b = base_color
+                    luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+                    # Lighten dark colors, darken light colors
+                    lighten = luminance < 0.5
+                    color = _adjust_color_brightness(base_color, swap_shade_percent, lighten)  # type: ignore
+                else:
+                    color = base_color
+
             draw.rectangle(rect, fill=color, outline="black", width=3)
 
             if not record:
@@ -242,6 +306,11 @@ def render_schedule_image(
             handoff = record.get("handoff")
             if handoff and handoff != "school":
                 lines.append(_format_handoff(handoff))
+
+            # Add swap note if present
+            swap_note = record.get("swap_note")
+            if swap_note:
+                lines.append(f"({swap_note})")
 
             # Calculate total height of text block
             line_spacing = _line_height(cell_font) + 5

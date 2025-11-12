@@ -47,19 +47,36 @@ def resolve_for_date(dt: date, cfg: ScheduleConfigModel, _check_handoff: bool = 
         _check_handoff: Internal flag to prevent infinite recursion
 
     Returns:
-        Dictionary with date, calendar_week, guardian, and handoff information
+        Dictionary with date, calendar_week, guardian, handoff, is_swap, and optional swap_note
     """
     iso_date = dt.isoformat()
     cw = iso_week(dt)
     day = Weekday.from_python_weekday(dt.weekday())
     handoff: str | None = None
+    is_swap = False
+    swap_note: str | None = None
 
+    # Check for swap dates first (new system)
+    if iso_date in cfg.swaps:
+        swap = cfg.swaps[iso_date]
+        return {
+            "date": iso_date,
+            "calendar_week": cw,
+            "guardian": swap.guardian,
+            "handoff": swap.handoff,
+            "is_swap": True,
+            "swap_note": swap.note,
+        }
+
+    # Check for holidays (legacy system, kept for backward compatibility)
     if iso_date in cfg.holidays:
         return {
             "date": iso_date,
             "calendar_week": cw,
             "guardian": cfg.holidays[iso_date],
             "handoff": None,
+            "is_swap": False,
+            "swap_note": None,
         }
 
     guardian: Guardian
@@ -113,7 +130,14 @@ def resolve_for_date(dt: date, cfg: ScheduleConfigModel, _check_handoff: bool = 
                     time_str = special.time.format()
                     handoff = f"{special.from_guardian}_to_{special.to_guardian}_{time_str}"
 
-    return {"date": iso_date, "calendar_week": cw, "guardian": guardian, "handoff": handoff}
+    return {
+        "date": iso_date,
+        "calendar_week": cw,
+        "guardian": guardian,
+        "handoff": handoff,
+        "is_swap": is_swap,
+        "swap_note": swap_note,
+    }
 
 
 def resolve_week_of(anchor: date, cfg: ScheduleConfigModel) -> dict[str, dict[str, object]]:

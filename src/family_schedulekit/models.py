@@ -185,6 +185,22 @@ class VisualizationPalette(BaseModel):
     dad: ColorValue = Field(default="midnight_blue", description="Color for dad's custody days")
     holiday: ColorValue | None = Field(default="light_blue", description="Color for holiday overrides")
     unknown: ColorValue | None = Field(default="gray", description="Color for unknown/error states")
+    swap_shade_percent: int = Field(default=20, ge=0, le=100, description="Percentage to lighten/darken swap colors (0-100, default 20)")
+    start_weekday: Literal["monday", "sunday"] = Field(default="monday", description="First day of the week in PNG visualization (default: monday)")
+
+
+class SwapDate(BaseModel):
+    """A date swap/exception where custody differs from the normal schedule.
+
+    By default, the visualization will use a lighter or darker shade of the guardian's
+    normal color (controlled by swap_shade_percent in VisualizationPalette).
+    You can optionally override with a specific color.
+    """
+
+    guardian: Guardian = Field(description="Guardian who has custody on this swapped date")
+    color: ColorValue | None = Field(default=None, description="Optional custom color (overrides automatic shading)")
+    handoff: str | None = Field(default=None, description="Optional handoff description for this swap")
+    note: str | None = Field(default=None, description="Optional note explaining the swap")
 
 
 class ScheduleConfigModel(BaseModel):
@@ -193,12 +209,20 @@ class ScheduleConfigModel(BaseModel):
     calendar_week_system: Literal["ISO8601"]
     handoff: Handoff
     rules: Rules
-    holidays: dict[str, Guardian] = Field(default_factory=dict)
+    holidays: dict[str, Guardian] = Field(default_factory=dict, description="Holiday overrides (DEPRECATED: use swaps instead)")
+    swaps: dict[str, SwapDate] = Field(default_factory=dict, description="Date swaps/exceptions with optional colors and notes")
     visualization: VisualizationPalette = Field(default_factory=VisualizationPalette, description="Color palette for PNG exports")
 
     @field_validator("holidays")
     @classmethod
     def _validate_holidays(cls, v: dict[str, Guardian]):
+        for k in v:
+            datetime.strptime(k, "%Y-%m-%d")
+        return v
+
+    @field_validator("swaps")
+    @classmethod
+    def _validate_swaps(cls, v: dict[str, SwapDate]):
         for k in v:
             datetime.strptime(k, "%Y-%m-%d")
         return v

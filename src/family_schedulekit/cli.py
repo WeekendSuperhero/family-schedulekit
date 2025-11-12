@@ -111,7 +111,10 @@ def _cmd_export(sp):
     outdir = Path(sp.outdir)
     fmts = tuple({f.lower() for f in sp.formats})  # unique, normalized
     plan = ExportPlan(start=start, weeks=sp.weeks, outdir=outdir, formats=fmts)
-    paths = write_exports(plan, cfg)
+
+    # Pass the start_weekday override if provided
+    start_weekday_override = sp.start_weekday if hasattr(sp, "start_weekday") else None
+    paths = write_exports(plan, cfg, start_weekday_override=start_weekday_override)
     print("Exported:")
     for k, p in paths.items():
         print(f"  {k}: {p}")
@@ -175,6 +178,12 @@ def main():
         nargs="+",
         default=["csv", "json", "jsonl", "ics", "md"],
         help="One or more of: csv json jsonl ics md png",
+    )
+    ap_exp.add_argument(
+        "--start-weekday",
+        choices=["monday", "sunday"],
+        default=None,
+        help="First day of week for PNG calendar (default: from config, or monday)",
     )
     ap_exp.set_defaults(func=_cmd_export)
 

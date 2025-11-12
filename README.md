@@ -215,6 +215,53 @@ Define specific dates that override normal schedule rules:
 
 Dates must be in `YYYY-MM-DD` format. When a date appears in holidays, it completely overrides weekday/weekend rules.
 
+**Note:** The `holidays` field is deprecated in favor of the more flexible `swaps` system (see below).
+
+### Date Swaps/Exceptions
+
+Use `swaps` for schedule exceptions with automatic visual differentiation and optional notes:
+
+```json
+"swaps": {
+  "2025-12-25": {
+    "guardian": "mom",
+    "note": "Christmas",
+    "handoff": "at mom's house by 10am"
+  },
+  "2025-07-04": {
+    "guardian": "dad",
+    "color": "red",
+    "note": "4th of July swap"
+  },
+  "2025-03-15": {
+    "guardian": "dad",
+    "note": "Spring break trade"
+  }
+}
+```
+
+**Swap Features:**
+
+- **Automatic color shading**: By default, swap days use a lighter/darker shade of the guardian's color
+- **Custom colors**: Override with `"color": "red"` or any named color/hex value
+- **Notes**: Add context with the `note` field (shown in visualizations)
+- **Custom handoffs**: Specify handoff details specific to this swap
+
+**Visualization Colors:**
+Configure swap shading and week start day in the `visualization` section:
+
+```json
+"visualization": {
+  "mom": "hot_pink",
+  "dad": "midnight_blue",
+  "swap_shade_percent": 20,
+  "start_weekday": "sunday"
+}
+```
+
+- `swap_shade_percent`: Controls how much to lighten (for dark colors) or darken (for light colors) swap dates. Default is 20%.
+- `start_weekday`: First day of week in PNG calendars. Options: `"monday"` (default) or `"sunday"`
+
 ### Special Handoff Rules
 
 Configure specific handoff times and guardians for any weekday:

@@ -51,10 +51,24 @@
     }
   },
   "holidays": {},
+  "swaps": {
+    "2025-12-25": {
+      "guardian": "mom",
+      "note": "Christmas",
+      "handoff": "at mom's house by 10am"
+    },
+    "2025-07-04": {
+      "guardian": "dad",
+      "color": "red",
+      "note": "4th of July"
+    }
+  },
   "visualization": {
     "mom": "hot_pink",
     "dad": "midnight_blue",
     "holiday": "light_blue",
-    "unknown": "gray"
+    "unknown": "gray",
+    "swap_shade_percent": 20,
+    "start_weekday": "monday"
   }
 }

@@ -41,6 +41,13 @@ def resolve_range(start: date, weeks: int, cfg: ScheduleConfigModel) -> list[Day
         rec["weekday"] = Weekday.from_python_weekday(d.weekday()).value
         rec["iso_date"] = d.isoformat()
         rec["calendar_week_system"] = cfg.calendar_week_system
+
+        # Add custom swap color if specified in config
+        if rec.get("is_swap") and d.isoformat() in cfg.swaps:
+            swap = cfg.swaps[d.isoformat()]
+            if swap.color:
+                rec["swap_color"] = swap.color
+
         out.append(rec)
     return out
 
@@ -163,7 +170,7 @@ def _swap_messages_for_records(records: list[DayRecord]) -> list[dict[str, str]]
 # ---------- Writers ----------
 
 
-def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel) -> dict[str, Path]:
+def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel, start_weekday_override: str | None = None) -> dict[str, Path]:
     plan.outdir.mkdir(parents=True, exist_ok=True)
     records = resolve_range(plan.start, plan.weeks, cfg)
     paths: dict[str, Path] = {}
@@ -216,13 +223,17 @@ def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel) -> dict[str, Path]
         palette = {
             "mom": cfg.visualization.mom,
             "dad": cfg.visualization.dad,
+            "swap_shade_percent": cfg.visualization.swap_shade_percent,
         }
         if cfg.visualization.holiday:
             palette["holiday"] = cfg.visualization.holiday
         if cfg.visualization.unknown:
             palette["unknown"] = cfg.visualization.unknown
 
-        render_schedule_image(records, plan.start, plan.weeks, png_path, palette=palette)
+        # Use CLI override if provided, otherwise use config setting
+        start_weekday = start_weekday_override if start_weekday_override else cfg.visualization.start_weekday
+
+        render_schedule_image(records, plan.start, plan.weeks, png_path, palette=palette, start_weekday=start_weekday)
         paths["png"] = png_path
 
     return paths
