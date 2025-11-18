@@ -18,6 +18,16 @@ You can reuse this schema for any co-parenting arrangement by changing the `part
 
 ---
 
+## 📸 Example Output
+
+Here's what a 4-week schedule visualization looks like:
+
+![Sample Schedule Calendar](examples/images/sample-schedule.png)
+
+The calendar color-codes each day by guardian (hot pink for Mom, midnight blue for Dad), making it easy to see custody patterns at a glance. You can export schedules in multiple formats (JSON, PNG) and customize colors to match your preferences.
+
+---
+
 ## 📖 Rules Summary
 
 - **Weekdays**

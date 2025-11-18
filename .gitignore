@@ -44,3 +44,7 @@ dmypy.json
 .coverage
 htmlcov/
 .tox/
+
+#Agent files
+AGENTS.md
+CLAUDE.md

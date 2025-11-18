@@ -1,0 +1,34 @@
+{
+  "calendar_week": 42,
+  "calendar_week_system": "ISO8601",
+  "resolved_schedule": {
+    "monday": {
+      "guardian": "mom",
+      "handoff": "school"
+    },
+    "tuesday": {
+      "guardian": "dad",
+      "handoff": "school"
+    },
+    "wednesday": {
+      "guardian": "mom",
+      "handoff": "school"
+    },
+    "thursday": {
+      "guardian": "dad",
+      "handoff": "school"
+    },
+    "friday": {
+      "guardian": "dad",
+      "handoff": null
+    },
+    "saturday": {
+      "guardian": "dad",
+      "handoff": null
+    },
+    "sunday": {
+      "guardian": "dad",
+      "handoff": null
+    }
+  }
+}
