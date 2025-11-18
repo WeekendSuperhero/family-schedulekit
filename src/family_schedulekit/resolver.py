@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from .models import Guardian, ScheduleConfigModel, Weekday, WeekdayHandoffs, WeekdayRule
+from .models import Guardian, ScheduleConfigModel, Weekday, WeekdayRule
 
 
 def iso_week(dt: date) -> int:

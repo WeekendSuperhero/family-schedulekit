@@ -220,7 +220,7 @@ def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel, start_weekday_over
         from .visualizer import render_schedule_image
 
         # Convert config visualization palette to dict for render_schedule_image
-        palette = {
+        palette: dict[str, str | tuple[int, int, int] | int] = {
             "mom": cfg.visualization.mom,
             "dad": cfg.visualization.dad,
             "swap_shade_percent": cfg.visualization.swap_shade_percent,
