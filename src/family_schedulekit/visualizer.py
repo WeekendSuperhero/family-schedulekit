@@ -268,10 +268,12 @@ def render_schedule_image(
             # Determine color - check for swap with custom color first
             is_swap = (record or {}).get("is_swap", False)
             swap_has_custom_color = False
+            color: tuple[int, int, int]
 
             if is_swap and "swap_color" in (record or {}):
                 # Swap with custom color specified
-                color = record["swap_color"]  # type: ignore
+                swap_color_value = record["swap_color"]  # type: ignore
+                color = swap_color_value if isinstance(swap_color_value, tuple) else colors["unknown"]
                 swap_has_custom_color = True
             else:
                 # Regular guardian color
