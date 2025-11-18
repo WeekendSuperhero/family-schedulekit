@@ -20,7 +20,7 @@ You can reuse this schema for any co-parenting arrangement by changing the `part
 
 ## 📸 Example Output
 
-Here's what a 4-week schedule visualization looks like:
+Here's what a 8-week schedule visualization looks like:
 
 ![Sample Schedule Calendar](examples/images/sample-schedule.png)
 
