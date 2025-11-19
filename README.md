@@ -64,9 +64,9 @@ The calendar color-codes each day by guardian (hot pink for Mom, midnight blue f
 ```json
 {
   "parties": {
-    "guardian_1": "Jane",
-    "guardian_2": "John",
-    "children": ["Roger", "Jamie"]
+    "guardian_1": "Dee Fault",
+    "guardian_2": "Nora Mal",
+    "children": ["Buggy", "Piplet"]
   },
   "calendar_week_system": "ISO8601",
   "handoff": {
@@ -118,9 +118,9 @@ The calendar color-codes each day by guardian (hot pink for Mom, midnight blue f
     "2025-07-04": "guardian_2"
   },
   "visualization": {
-    "guardian_1": "hot_pink",
-    "guardian_2": "midnight_blue",
-    "holiday": "light_blue",
+    "guardian_1": "hotpink",
+    "guardian_2": "midnightblue",
+    "holiday": "lightblue",
     "unknown": "gray"
   }
 }
@@ -372,37 +372,48 @@ Multiple special handoffs:
 
 ### Visualization Colors
 
-Customize PNG calendar colors using named color presets or hex strings:
+Customize PNG calendar colors using any of the **147 CSS3 color names** or hex strings:
 
 ```json
 "visualization": {
   "guardian_1": "coral",
-  "guardian_2": "mint_green",
+  "guardian_2": "steelblue",
   "holiday": "gold",
-  "unknown": "light_gray"
+  "unknown": "lightgray"
 }
 ```
 
-**Available Named Colors:**
+**All CSS3 Color Names Supported:**
 
-| Category         | Named Colors                                                   |
-| ---------------- | -------------------------------------------------------------- |
-| **Pinks**        | `pink`, `hot_pink`, `deep_pink`                                |
-| **Blues**        | `blue`, `dark_blue`, `midnight_blue`, `light_blue`, `sky_blue` |
-| **Greens**       | `green`, `mint_green`, `forest_green`                          |
-| **Purples**      | `purple`, `lavender`                                           |
-| **Oranges/Reds** | `orange`, `coral`, `red`, `crimson`                            |
-| **Yellows**      | `yellow`, `gold`                                               |
-| **Grays**        | `gray`, `grey`, `light_gray`, `light_grey`                     |
+The library supports all 147 standard CSS3 color names via the [webcolors](https://pypi.org/project/webcolors/) library, including:
+
+- **Pinks**: `pink`, `hotpink`, `deeppink`, `lightpink`, `palevioletred`, etc.
+- **Blues**: `blue`, `darkblue`, `midnightblue`, `lightblue`, `skyblue`, `steelblue`, `navy`, etc.
+- **Greens**: `green`, `darkgreen`, `lightgreen`, `forestgreen`, `lime`, `limegreen`, `seagreen`, etc.
+- **Purples**: `purple`, `lavender`, `violet`, `indigo`, `orchid`, `plum`, etc.
+- **Oranges/Reds**: `orange`, `coral`, `red`, `crimson`, `tomato`, `orangered`, `salmon`, etc.
+- **Yellows**: `yellow`, `gold`, `goldenrod`, `khaki`, etc.
+- **Grays**: `gray`, `grey`, `lightgray`, `darkgray`, `silver`, `dimgray`, etc.
+- And many more: `chocolate`, `sienna`, `wheat`, `beige`, `ivory`, `snow`, etc.
+
+**View All Available Colors:**
+
+To see the complete list of 147 colors with visual previews in your terminal:
+
+```bash
+family-schedulekit list-colors
+```
+
+This command displays all color names with colored swatches, RGB values, and shows exactly what value to use in your schema.
 
 You can also use hex strings: `"#FF1493"`, `"#81C995"`, etc.
 
 **Default Colors:**
 
-- `guardian_1`: `hot_pink` (`#FF1493`)
-- `guardian_2`: `midnight_blue` (`#191970`)
-- `holiday`: `light_blue` (`#AECBF8`)
-- `unknown`: `gray` (`#C8C8C8`)
+- `guardian_1`: `hotpink` (RGB: 255, 105, 180)
+- `guardian_2`: `midnightblue` (RGB: 25, 25, 112)
+- `holiday`: `lightblue` (RGB: 173, 216, 230)
+- `unknown`: `gray` (RGB: 128, 128, 128)
 
 ---
 
@@ -425,23 +436,25 @@ uv sync --extra dev
 The CLI uses a configuration file to store your schedule settings. By default, configs are stored in:
 
 ```
-~/.config/family-schedulekit/schedule.json
+~/.config/family-schedulekit/schedule.yaml
 ```
 
 This follows the [XDG Base Directory specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html) for user configuration files.
+
+**Format Support**: The tool supports both YAML (`.yaml`, `.yml`) and JSON (`.json`) formats. YAML is recommended for better readability, but JSON is fully supported for backward compatibility.
 
 **Config Versioning**: All config files include a `version` field (currently `1.0.0`) to track schema changes and ensure compatibility as the project evolves.
 
 ### CLI Commands
 
 ```bash
-# Generate a new schedule configuration (saves to ~/.config/family-schedulekit/schedule.json)
+# Generate a new schedule configuration (saves to ~/.config/family-schedulekit/schedule.yaml)
 family-schedulekit init --guardian-1 ParentA --guardian-2 ParentB --child Child1 --child Child2
 
-# Or specify a custom location
-family-schedulekit init --guardian-1 ParentA --guardian-2 ParentB --child Child1 --child Child2 -o path/to/config.json
+# Or specify a custom location (supports .yaml, .yml, or .json)
+family-schedulekit init --guardian-1 ParentA --guardian-2 ParentB --child Child1 --child Child2 -o path/to/config.yaml
 
-# Resolve a specific date (uses ~/.config/family-schedulekit/schedule.json by default)
+# Resolve a specific date (uses ~/.config/family-schedulekit/schedule.yaml by default)
 family-schedulekit resolve 2025-02-23
 
 # Resolve an entire week
@@ -450,25 +463,28 @@ family-schedulekit resolve --week-of 2025-02-23
 # List available templates
 family-schedulekit list-templates
 
+# List all 147 CSS3 color names with terminal preview
+family-schedulekit list-colors
+
 # Export multi-format schedule files (defaults to most recent Monday, uses your config)
 family-schedulekit export --weeks 6 --formats json png
 
 # Or specify a custom start date
 family-schedulekit export --start 2025-02-03 --weeks 6 --formats json png
 
-# Use a different config file
-family-schedulekit export --config path/to/config.json --weeks 6 --formats png
+# Use a different config file (supports .yaml, .yml, or .json)
+family-schedulekit export --config path/to/config.yaml --weeks 6 --formats png
 ```
 
 > ℹ️ PNG export requires Pillow, which is included with the base install.
 
-**PNG Color Scheme**: Calendar visualizations use color-coded cells to distinguish guardians:
+**PNG Color Scheme**: Calendar visualizations use color-coded cells to distinguish guardians. The default colors are:
 
-- **Guardian 1**: Hot Pink (`#FF1493` / DeepPink)
-- **Guardian 2**: Dark Blue (`#191970` / MidnightBlue)
-- **Holiday override**: Light Blue (`#AECBF8`)
+- **Guardian 1**: `hotpink` (RGB: 255, 105, 180)
+- **Guardian 2**: `midnightblue` (RGB: 25, 25, 112)
+- **Holiday override**: `lightblue` (RGB: 173, 216, 230)
 
-The colors are chosen for high contrast and accessibility, with automatic text color selection (black or white) based on background luminance.
+The colors are chosen for high contrast and accessibility, with automatic text color selection (black or white) based on background luminance. You can customize colors using any of the 147 CSS3 color names or hex values (see [Visualization Colors](#visualization-colors)).
 
 ### Working with `uv`
 
@@ -534,10 +550,10 @@ from pathlib import Path
 config = load_default_config()
 records = resolve_range(date(2025, 2, 3), weeks=6, cfg=config)
 
-# Custom color palette (named colors, hex strings, or RGB tuples)
+# Custom color palette (CSS3 color names, hex strings, or RGB tuples)
 custom_palette = {
-    "guardian_1": "coral",          # Named color
-    "guardian_2": "mint_green",     # Named color
+    "guardian_1": "coral",          # CSS3 color name (147 colors available)
+    "guardian_2": "steelblue",      # CSS3 color name
     "holiday": "#FFD700"            # Hex string
     # Can also use RGB tuples: "guardian_1": (242, 139, 130)
 }
@@ -553,10 +569,12 @@ render_schedule_image(
 
 Default colors:
 
-- `guardian_1`: `#FF1493` (DeepPink / Hot Pink)
-- `guardian_2`: `#191970` (MidnightBlue / Dark Blue)
-- `holiday`: `#AECBF8` (Light Blue)
-- `unknown`: `#C8C8C8` (Gray)
+- `guardian_1`: `hotpink` (RGB: 255, 105, 180)
+- `guardian_2`: `midnightblue` (RGB: 25, 25, 112)
+- `holiday`: `lightblue` (RGB: 173, 216, 230)
+- `unknown`: `gray` (RGB: 128, 128, 128)
+
+See all 147 available CSS3 color names: `family-schedulekit list-colors`
 
 ### AI Integration
 

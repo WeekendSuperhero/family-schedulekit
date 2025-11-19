@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import date, timedelta
 from pathlib import Path
 
+import webcolors
+
 try:  # pragma: no cover - exercised via optional dependency in tests
     from PIL import Image, ImageDraw, ImageFont
 except ImportError:  # pragma: no cover - fallback evaluated at runtime
@@ -14,44 +16,10 @@ type DayRecord = dict[str, object]
 type Palette = dict[str, tuple[int, int, int]]
 
 _DEFAULT_PALETTE: Palette = {
-    "guardian_1": (255, 20, 147),  # hot pink (DeepPink)
-    "guardian_2": (25, 25, 112),  # darker blue (MidnightBlue)
-    "holiday": (174, 203, 248),  # light blue override
-    "unknown": (200, 200, 200),
-}
-
-# Named color presets - easy to remember names mapped to RGB values
-_NAMED_COLORS: dict[str, tuple[int, int, int]] = {
-    # Pinks
-    "pink": (255, 192, 203),
-    "hot_pink": (255, 20, 147),
-    "deep_pink": (255, 20, 147),
-    # Blues
-    "blue": (0, 0, 255),
-    "dark_blue": (0, 0, 139),
-    "midnight_blue": (25, 25, 112),
-    "light_blue": (174, 203, 248),
-    "sky_blue": (135, 206, 235),
-    # Greens
-    "green": (0, 128, 0),
-    "mint_green": (129, 201, 149),
-    "forest_green": (34, 139, 34),
-    # Purples
-    "purple": (128, 0, 128),
-    "lavender": (230, 230, 250),
-    # Oranges/Reds
-    "orange": (255, 165, 0),
-    "coral": (242, 139, 130),
-    "red": (255, 0, 0),
-    "crimson": (220, 20, 60),
-    # Yellows
-    "yellow": (255, 255, 0),
-    "gold": (255, 215, 0),
-    # Grays
-    "gray": (200, 200, 200),
-    "grey": (200, 200, 200),
-    "light_gray": (211, 211, 211),
-    "light_grey": (211, 211, 211),
+    "guardian_1": (255, 105, 180),  # hotpink
+    "guardian_2": (25, 25, 112),  # midnightblue
+    "holiday": (173, 216, 230),  # lightblue
+    "unknown": (128, 128, 128),  # gray
 }
 
 _WEEKDAYS: tuple[Weekday, ...] = tuple(Weekday)
@@ -66,16 +34,20 @@ def _hex_to_rgb(value: str) -> tuple[int, int, int]:
 
 
 def _resolve_color_value(value: str | tuple[int, int, int]) -> tuple[int, int, int]:
-    """Resolve a color value from named color, hex string, or RGB tuple."""
+    """Resolve a color value from CSS3 named color, hex string, or RGB tuple.
+
+    Supports all 147 CSS3 color names via the webcolors library.
+    """
     if isinstance(value, tuple):
         return value
 
-    # Check if it's a named color
-    if value.lower() in _NAMED_COLORS:
-        return _NAMED_COLORS[value.lower()]
-
-    # Otherwise treat as hex string
-    return _hex_to_rgb(value)
+    # Check if it's a CSS3 named color
+    try:
+        rgb = webcolors.name_to_rgb(value.lower())
+        return (rgb.red, rgb.green, rgb.blue)
+    except ValueError:
+        # Not a named color, treat as hex string
+        return _hex_to_rgb(value)
 
 
 def _normalize_palette(palette: dict[str, str | tuple[int, int, int] | int] | None) -> Palette:
@@ -139,6 +111,7 @@ def render_schedule_image(
     out_path: Path,
     palette: dict[str, str | tuple[int, int, int] | int] | None = None,
     start_weekday: str = "monday",
+    guardian_names: dict[str, str] | None = None,
 ) -> Path:
     """
     Render a PNG snapshot of the schedule over a given range.
@@ -150,6 +123,7 @@ def render_schedule_image(
         out_path: File path to write the PNG image
         palette: Optional mapping of guardian -> hex color (e.g. {"guardian_1": "#F28B82"})
         start_weekday: First day of week in visualization ("monday" or "sunday", default: "monday")
+        guardian_names: Optional mapping of guardian_1/guardian_2 to actual names (e.g. {"guardian_1": "Jane", "guardian_2": "John"})
 
     Returns:
         Path to the written PNG file.
@@ -161,6 +135,30 @@ def render_schedule_image(
         raise RuntimeError("Pillow is required for image exports. Install via `uv sync --extra dev` or include Pillow.")
 
     colors = _normalize_palette(palette)
+
+    # Create reverse mapping from actual names to guardian keys for color lookup
+    name_to_key: dict[str, str] = {}
+    if guardian_names:
+        for key, name in guardian_names.items():
+            name_to_key[name] = key
+
+    # Helper function to get display name for guardian
+    def _get_guardian_display_name(guardian_key: str) -> str:
+        """Get the display name for a guardian (actual name if provided, otherwise capitalized key)."""
+        if guardian_names and guardian_key in guardian_names:
+            return guardian_names[guardian_key]
+        return guardian_key.replace("_", " ").title()
+
+    # Helper function to get color key from guardian value (which might be a name or key)
+    def _get_color_key(guardian_value: str) -> str:
+        """Get the color palette key for a guardian (maps actual names back to guardian_1/guardian_2)."""
+        # If it's already a guardian key, return it
+        if guardian_value in colors:
+            return guardian_value
+        # If it's a name, look up the key
+        if guardian_value in name_to_key:
+            return name_to_key[guardian_value]
+        return guardian_value
 
     # Determine weekday order based on start_weekday
     weekdays = _WEEKDAYS_SUNDAY_FIRST if start_weekday.lower() == "sunday" else _WEEKDAYS
@@ -276,8 +274,9 @@ def render_schedule_image(
                 color = swap_color_value if isinstance(swap_color_value, tuple) else colors["unknown"]
                 swap_has_custom_color = True
             else:
-                # Regular guardian color
-                base_color = colors.get(guardian, colors["unknown"])
+                # Regular guardian color - map guardian value to color key
+                color_key = _get_color_key(guardian)
+                base_color = colors.get(color_key, colors["unknown"])
 
                 if is_swap and not swap_has_custom_color:
                     # Swap without custom color - apply automatic shading
@@ -304,7 +303,7 @@ def render_schedule_image(
             cell_center_y = y0 + cell_h // 2
 
             # Prepare all text lines
-            lines = [str(record["date"]), guardian.capitalize()]
+            lines = [str(record["date"]), _get_guardian_display_name(guardian)]
             handoff = record.get("handoff")
             if handoff and handoff != "school":
                 lines.append(_format_handoff(handoff))
@@ -344,7 +343,8 @@ def render_schedule_image(
     # Draw legend items
     x_pos = legend_x_start
     for idx, guardian in enumerate(sorted(guardians)):
-        color = colors.get(guardian, colors["unknown"])
+        color_key = _get_color_key(guardian)
+        color = colors.get(color_key, colors["unknown"])
         text_color = _get_text_color(color)
 
         # Draw color box
@@ -354,10 +354,11 @@ def render_schedule_image(
         # Draw label
         label_x = x_pos + legend_box_size + 30
         label_y = legend_y + legend_box_size // 2
-        draw.text((label_x, label_y - _line_height(legend_font) // 2), guardian.capitalize(), fill="black", font=legend_font)
+        guardian_display = _get_guardian_display_name(guardian)
+        draw.text((label_x, label_y - _line_height(legend_font) // 2), guardian_display, fill="black", font=legend_font)
 
         # Calculate width for next item
-        bbox = _font_bbox(legend_font, guardian.capitalize())
+        bbox = _font_bbox(legend_font, guardian_display)
         text_width = bbox[2] - bbox[0]
         x_pos += legend_box_size + text_width + legend_spacing
 

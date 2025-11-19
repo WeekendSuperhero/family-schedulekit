@@ -170,24 +170,54 @@ def _swap_messages_for_records(records: list[DayRecord]) -> list[dict[str, str]]
 # ---------- Writers ----------
 
 
+def _map_guardian_names_in_records(records: list[dict[str, object]], cfg: ScheduleConfigModel) -> list[dict[str, object]]:
+    """Map guardian_1/guardian_2 to actual names in all records.
+
+    Args:
+        records: List of day records from resolve_range
+        cfg: Schedule configuration with party names
+
+    Returns:
+        Records with guardian keys replaced by actual names
+    """
+    guardian_map = {
+        "guardian_1": cfg.parties.guardian_1,
+        "guardian_2": cfg.parties.guardian_2,
+    }
+
+    mapped_records = []
+    for record in records:
+        mapped_record = record.copy()
+        guardian_key = str(record.get("guardian", ""))
+        if guardian_key in guardian_map:
+            mapped_record["guardian"] = guardian_map[guardian_key]
+        mapped_records.append(mapped_record)
+
+    return mapped_records
+
+
 def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel, start_weekday_override: str | None = None) -> dict[str, Path]:
     plan.outdir.mkdir(parents=True, exist_ok=True)
     records = resolve_range(plan.start, plan.weeks, cfg)
+
+    # Map guardian keys to actual names for all exports
+    records_with_names = _map_guardian_names_in_records(records, cfg)
+
     paths: dict[str, Path] = {}
 
     if "csv" in plan.formats:
         p = plan.outdir / f"schedule_{plan.start.isoformat()}_{plan.weeks}w.csv"
-        p.write_text("\n".join(_csv_lines(records)), encoding="utf-8")
+        p.write_text("\n".join(_csv_lines(records_with_names)), encoding="utf-8")
         paths["csv"] = p
 
     if "json" in plan.formats:
         p = plan.outdir / f"schedule_{plan.start.isoformat()}_{plan.weeks}w.json"
-        p.write_text(json.dumps(records, indent=2), encoding="utf-8")
+        p.write_text(json.dumps(records_with_names, indent=2), encoding="utf-8")
         paths["json"] = p
 
     if "jsonl" in plan.formats:
         p = plan.outdir / f"messages_{plan.start.isoformat()}_{plan.weeks}w.jsonl"
-        msgs = _swap_messages_for_records(records)
+        msgs = _swap_messages_for_records(records_with_names)
         with p.open("w", encoding="utf-8") as f:
             for m in msgs:
                 f.write(json.dumps(m, ensure_ascii=False) + "\n")
@@ -195,7 +225,7 @@ def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel, start_weekday_over
 
     if "ics" in plan.formats:
         p = plan.outdir / f"calendar_{plan.start.isoformat()}_{plan.weeks}w.ics"
-        p.write_text(_ical_for_records(records), encoding="utf-8")
+        p.write_text(_ical_for_records(records_with_names), encoding="utf-8")
         paths["ics"] = p
 
     if "md" in plan.formats:
@@ -209,9 +239,9 @@ def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel, start_weekday_over
             "| Date | Weekday | CW | Guardian | Handoff |",
             "|---|---:|---:|---|---|",
         ]
-        for r in records:
+        for r in records_with_names:
             handoff_str = "" if r["handoff"] is None else str(r["handoff"])
-            md.append(f"| {r['date']} | {str(r['weekday']).capitalize()} | {r['calendar_week']} | {str(r['guardian']).capitalize()} | {handoff_str} |")
+            md.append(f"| {r['date']} | {str(r['weekday']).capitalize()} | {r['calendar_week']} | {str(r['guardian'])} | {handoff_str} |")
         p.write_text("\n".join(md), encoding="utf-8")
         paths["md"] = p
 
@@ -233,7 +263,13 @@ def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel, start_weekday_over
         # Use CLI override if provided, otherwise use config setting
         start_weekday = start_weekday_override if start_weekday_override else cfg.visualization.start_weekday
 
-        render_schedule_image(records, plan.start, plan.weeks, png_path, palette=palette, start_weekday=start_weekday)
+        # Pass guardian names for display
+        guardian_names = {
+            "guardian_1": cfg.parties.guardian_1,
+            "guardian_2": cfg.parties.guardian_2,
+        }
+
+        render_schedule_image(records_with_names, plan.start, plan.weeks, png_path, palette=palette, start_weekday=start_weekday, guardian_names=guardian_names)
         paths["png"] = png_path
 
     return paths

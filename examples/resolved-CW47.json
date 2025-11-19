@@ -1,34 +1,34 @@
 {
-  "calendar_week": 42,
+  "calendar_week": 47,
   "calendar_week_system": "ISO8601",
   "resolved_schedule": {
     "monday": {
-      "guardian": "guardian_2",
+      "guardian": "Dee Fault",
       "handoff": "school"
     },
     "tuesday": {
-      "guardian": "guardian_1",
+      "guardian": "Nora Mal",
       "handoff": "school"
     },
     "wednesday": {
-      "guardian": "guardian_2",
+      "guardian": "Dee Fault",
       "handoff": "school"
     },
     "thursday": {
-      "guardian": "guardian_1",
+      "guardian": "Nora Mal",
       "handoff": "school"
     },
     "friday": {
-      "guardian": "guardian_2",
+      "guardian": "Dee Fault",
       "handoff": "school"
     },
     "saturday": {
-      "guardian": "guardian_2",
+      "guardian": "Dee Fault",
       "handoff": null
     },
     "sunday": {
-      "guardian": "guardian_1",
-      "handoff": "school"
+      "guardian": "Dee Fault",
+      "handoff": null
     }
   }
 }

@@ -6,34 +6,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-# Named color presets for easy configuration
-type NamedColor = Literal[
-    "pink",
-    "hot_pink",
-    "deep_pink",
-    "blue",
-    "dark_blue",
-    "midnight_blue",
-    "light_blue",
-    "sky_blue",
-    "green",
-    "mint_green",
-    "forest_green",
-    "purple",
-    "lavender",
-    "orange",
-    "coral",
-    "red",
-    "crimson",
-    "yellow",
-    "gold",
-    "gray",
-    "grey",
-    "light_gray",
-    "light_grey",
-]
-
-type ColorValue = NamedColor | str  # Named color or hex string like "#FF1493"
+# ColorValue accepts CSS3 color names (147 total) or hex strings like "#FF1493"
+# All CSS3 color names are supported via the webcolors library
+type ColorValue = str
 
 
 class Weekday(StrEnum):
@@ -162,9 +137,9 @@ class VisualizationPalette(BaseModel):
     Supports named colors (e.g., 'pink', 'blue') or hex strings (e.g., '#FF1493').
     """
 
-    guardian_1: ColorValue = Field(default="hot_pink", description="Color for guardian_1's custody days")
-    guardian_2: ColorValue = Field(default="midnight_blue", description="Color for guardian_2's custody days")
-    holiday: ColorValue | None = Field(default="light_blue", description="Color for holiday overrides")
+    guardian_1: ColorValue = Field(default="hotpink", description="Color for guardian_1's custody days")
+    guardian_2: ColorValue = Field(default="midnightblue", description="Color for guardian_2's custody days")
+    holiday: ColorValue | None = Field(default="lightblue", description="Color for holiday overrides")
     unknown: ColorValue | None = Field(default="gray", description="Color for unknown/error states")
     swap_shade_percent: int = Field(default=20, ge=0, le=100, description="Percentage to lighten/darken swap colors (0-100, default 20)")
     start_weekday: Literal["monday", "sunday"] = Field(default="monday", description="First day of the week in PNG visualization (default: monday)")
