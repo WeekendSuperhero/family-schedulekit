@@ -36,14 +36,14 @@ def generate_ai_context(
     context: dict[str, Any] = {
         "system_description": (
             "This is a co-parenting schedule system using ISO 8601 week numbering. "
-            "The schedule determines which parent has custody on any given day, "
-            "with special rules for weekends and handoff logistics."
+            "The schedule determines which guardian has custody on any given day, "
+            "with special rules based on odd/even weeks and handoff logistics."
         ),
         "current_date": start_date.isoformat(),
         "current_week": iso_week(start_date),
         "parties": {
-            "primary_caregiver": cfg.parties.mom,
-            "secondary_caregiver": cfg.parties.dad,
+            "guardian_1": cfg.parties.guardian_1,
+            "guardian_2": cfg.parties.guardian_2,
             "children": cfg.parties.children,
         },
         "rules_summary": _generate_rules_summary(cfg),
@@ -68,7 +68,7 @@ def _generate_rules_summary(cfg: ScheduleConfigModel) -> dict[str, str]:
     from .models import WeekdayRule
 
     # Describe even week Sunday rule
-    sunday_rule = cfg.rules.weekends.even_weeks.sunday
+    sunday_rule = cfg.rules.even_weeks.sunday
     if isinstance(sunday_rule, WeekdayRule) and sunday_rule.modulo_rules:
         # Find the common mod 4 pattern
         mod4_rule = next((r for r in sunday_rule.modulo_rules if r.modulo == 4 and r.remainder == 0), None)
@@ -83,21 +83,19 @@ def _generate_rules_summary(cfg: ScheduleConfigModel) -> dict[str, str]:
         special_sunday = "No special Sunday rules"
 
     return {
-        "weekday_pattern": (f"Monday: {cfg.parties.mom}, Tuesday: {cfg.parties.dad}, Wednesday: {cfg.parties.mom}, Thursday: {cfg.parties.dad}"),
-        "weekend_odd_weeks": f"Odd ISO weeks (CW1, CW3, CW5...): Full weekend with {cfg.parties.mom}",
-        "weekend_even_weeks": (f"Even ISO weeks (CW2, CW4, CW6...): Friday-Saturday patterns may use modulo rules, {sunday_desc}"),
+        "odd_week_pattern": f"Odd weeks (CW1, CW3, CW5...): All 7 days follow the odd week schedule",
+        "even_week_pattern": f"Even weeks (CW2, CW4, CW6...): All 7 days follow the even week schedule, {sunday_desc}",
         "special_sunday_rule": special_sunday,
-        "modulo_support": "Even-week days (Friday, Saturday, Sunday) support flexible modulo rules for complex rotation patterns",
+        "modulo_support": "Any day in odd or even weeks can use flexible modulo rules for complex rotation patterns",
     }
 
 
 def _generate_handoff_rules(cfg: ScheduleConfigModel) -> dict[str, str]:
     """Generate handoff logistics rules."""
     return {
-        "weekday_handoffs": "Exchanges happen at school (drop-off by one parent, pick-up by the other)",
-        "friday_handoffs": "After school pickup by the parent who has the weekend",
-        "sunday_special": f"When {cfg.parties.dad} has Sunday (CW%4==0), handoff to {cfg.parties.mom} by 1 PM",
-        "no_handoff_days": "Saturdays and most Sundays have no handoffs (continuous custody)",
+        "default_handoff": f"Default handoff location: {cfg.handoff.default_location}",
+        "custody_changes": "Handoffs occur automatically when custody changes between guardians",
+        "special_handoffs": "Special handoff rules can be configured for specific weekdays with custom times",
     }
 
 
@@ -126,15 +124,15 @@ def _generate_schedule_examples(cfg: ScheduleConfigModel, start: date, weeks: in
 
 def _summarize_week(week_schedule: dict[str, dict[str, Any]], cfg: ScheduleConfigModel) -> str:
     """Create a human-readable week summary."""
-    mom_days = sum(1 for day in week_schedule.values() if day["guardian"] == "mom")
-    dad_days = 7 - mom_days
+    guardian_1_days = sum(1 for day in week_schedule.values() if day["guardian"] == "guardian_1")
+    guardian_2_days = 7 - guardian_1_days
 
-    if mom_days == 7:
-        return f"Full week with {cfg.parties.mom}"
-    elif dad_days == 7:
-        return f"Full week with {cfg.parties.dad}"
+    if guardian_1_days == 7:
+        return f"Full week with {cfg.parties.guardian_1}"
+    elif guardian_2_days == 7:
+        return f"Full week with {cfg.parties.guardian_2}"
     else:
-        return f"{cfg.parties.mom}: {mom_days} days, {cfg.parties.dad}: {dad_days} days"
+        return f"{cfg.parties.guardian_1}: {guardian_1_days} days, {cfg.parties.guardian_2}: {guardian_2_days} days"
 
 
 def _generate_decision_examples(cfg: ScheduleConfigModel, start: date) -> list[dict[str, Any]]:
@@ -144,12 +142,13 @@ def _generate_decision_examples(cfg: ScheduleConfigModel, start: date) -> list[d
     # Example 1: Planning an event
     event_date = start + timedelta(days=14)
     resolution = resolve_for_date(event_date, cfg)
+    guardian_name = cfg.parties.guardian_1 if resolution["guardian"] == "guardian_1" else cfg.parties.guardian_2
     examples.append(
         {
             "scenario": "Planning a birthday party",
             "date": event_date.isoformat(),
             "question": f"Who should organize a birthday party on {event_date.strftime('%B %d, %Y')}?",
-            "answer": f"{cfg.parties.mom if resolution['guardian'] == 'mom' else cfg.parties.dad} has custody",
+            "answer": f"{guardian_name} has custody",
             "resolution": resolution,
         }
     )
@@ -167,34 +166,31 @@ def _generate_decision_examples(cfg: ScheduleConfigModel, start: date) -> list[d
         }
     )
 
-    # Example 3: Special Sunday
-    next_sunday = start + timedelta(days=(6 - start.weekday()) % 7)
-    if next_sunday == start:
-        next_sunday += timedelta(days=7)
-
-    sunday_resolution = resolve_for_date(next_sunday, cfg)
+    # Example 3: Special handoff day
+    next_day = start + timedelta(days=7)
+    resolution = resolve_for_date(next_day, cfg)
     examples.append(
         {
-            "scenario": "Sunday activity planning",
-            "date": next_sunday.isoformat(),
-            "question": f"Can {cfg.parties.dad} plan an all-day Sunday activity?",
-            "answer": _get_sunday_answer(next_sunday, sunday_resolution, cfg),
-            "resolution": sunday_resolution,
+            "scenario": "Activity planning with handoff",
+            "date": next_day.isoformat(),
+            "question": "What custody arrangements exist for this day?",
+            "answer": _get_day_answer(next_day, resolution, cfg),
+            "resolution": resolution,
         }
     )
 
     return examples
 
 
-def _get_sunday_answer(sunday: date, resolution: dict[str, Any], cfg: ScheduleConfigModel) -> str:
-    """Generate answer about Sunday activities."""
-    cw = iso_week(sunday)
-    if resolution["guardian"] == "mom":
-        return f"No, {cfg.parties.mom} has custody all day (CW{cw})"
-    elif resolution["handoff"] == "dad_to_mom_by_1pm":
-        return f"Only morning activities - must return by 1 PM (CW{cw}, special Sunday)"
+def _get_day_answer(day: date, resolution: dict[str, Any], cfg: ScheduleConfigModel) -> str:
+    """Generate answer about day activities."""
+    cw = iso_week(day)
+    guardian_name = cfg.parties.guardian_1 if resolution["guardian"] == "guardian_1" else cfg.parties.guardian_2
+
+    if resolution.get("handoff"):
+        return f"{guardian_name} has custody with handoff: {resolution['handoff']} (CW{cw})"
     else:
-        return f"Yes, {cfg.parties.dad} has full custody (CW{cw})"
+        return f"{guardian_name} has full custody (CW{cw})"
 
 
 def _generate_json_schema() -> dict[str, Any]:
@@ -206,15 +202,15 @@ def _generate_json_schema() -> dict[str, Any]:
         "properties": {
             "parties": {
                 "type": "object",
-                "required": ["mom", "dad", "children"],
+                "required": ["guardian_1", "guardian_2", "children"],
                 "properties": {
-                    "mom": {
+                    "guardian_1": {
                         "type": "string",
-                        "description": "Name/identifier for primary caregiver",
+                        "description": "Name/identifier for first guardian",
                     },
-                    "dad": {
+                    "guardian_2": {
                         "type": "string",
-                        "description": "Name/identifier for secondary caregiver",
+                        "description": "Name/identifier for second guardian",
                     },
                     "children": {
                         "type": "array",
@@ -230,133 +226,40 @@ def _generate_json_schema() -> dict[str, Any]:
             },
             "handoff": {
                 "type": "object",
-                "required": ["weekdays", "sunday_dad_to_mom"],
                 "properties": {
-                    "weekdays": {
+                    "default_location": {
                         "type": "string",
-                        "enum": ["school"],
-                        "description": "Weekday handoff location",
+                        "description": "Default handoff location when custody changes",
                     },
-                    "sunday_dad_to_mom": {
-                        "type": "string",
-                        "enum": ["by_1pm"],
-                        "description": "Special Sunday handoff time",
+                    "special_handoffs": {
+                        "type": "object",
+                        "description": "Special handoff rules for specific weekdays",
                     },
                 },
             },
             "rules": {
                 "type": "object",
-                "required": ["weekdays", "weekends"],
+                "required": ["odd_weeks", "even_weeks"],
+                "description": "Custody rules organized by odd and even calendar weeks",
                 "properties": {
-                    "weekdays": {
+                    "odd_weeks": {
                         "type": "object",
-                        "required": ["monday", "tuesday", "wednesday", "thursday"],
-                        "properties": {
-                            "monday": {"type": "string", "enum": ["mom", "dad"]},
-                            "tuesday": {"type": "string", "enum": ["mom", "dad"]},
-                            "wednesday": {"type": "string", "enum": ["mom", "dad"]},
-                            "thursday": {"type": "string", "enum": ["mom", "dad"]},
-                        },
+                        "description": "Rules for all 7 days in odd weeks (CW1, CW3, CW5...)",
                     },
-                    "weekends": {
+                    "even_weeks": {
                         "type": "object",
-                        "required": ["odd_weeks", "even_weeks"],
-                        "properties": {
-                            "odd_weeks": {
-                                "type": "object",
-                                "required": ["friday", "saturday", "sunday"],
-                                "properties": {
-                                    "friday": {"type": "string", "enum": ["mom", "dad"]},
-                                    "saturday": {"type": "string", "enum": ["mom", "dad"]},
-                                    "sunday": {"type": "string", "enum": ["mom", "dad"]},
-                                },
-                            },
-                            "even_weeks": {
-                                "type": "object",
-                                "required": ["friday", "saturday", "sunday"],
-                                "properties": {
-                                    "friday": {
-                                        "oneOf": [
-                                            {"type": "string", "enum": ["mom", "dad"]},
-                                            {
-                                                "type": "object",
-                                                "required": ["modulo_rules", "otherwise"],
-                                                "properties": {
-                                                    "modulo_rules": {
-                                                        "type": "array",
-                                                        "items": {
-                                                            "type": "object",
-                                                            "required": ["modulo", "remainder", "guardian"],
-                                                            "properties": {
-                                                                "modulo": {"type": "integer", "minimum": 2},
-                                                                "remainder": {"type": "integer", "minimum": 0},
-                                                                "guardian": {"type": "string", "enum": ["mom", "dad"]},
-                                                            },
-                                                        },
-                                                    },
-                                                    "otherwise": {"type": "string", "enum": ["mom", "dad"]},
-                                                },
-                                            },
-                                        ]
-                                    },
-                                    "saturday": {
-                                        "oneOf": [
-                                            {"type": "string", "enum": ["mom", "dad"]},
-                                            {
-                                                "type": "object",
-                                                "required": ["modulo_rules", "otherwise"],
-                                                "properties": {
-                                                    "modulo_rules": {
-                                                        "type": "array",
-                                                        "items": {
-                                                            "type": "object",
-                                                            "required": ["modulo", "remainder", "guardian"],
-                                                            "properties": {
-                                                                "modulo": {"type": "integer", "minimum": 2},
-                                                                "remainder": {"type": "integer", "minimum": 0},
-                                                                "guardian": {"type": "string", "enum": ["mom", "dad"]},
-                                                            },
-                                                        },
-                                                    },
-                                                    "otherwise": {"type": "string", "enum": ["mom", "dad"]},
-                                                },
-                                            },
-                                        ]
-                                    },
-                                    "sunday": {
-                                        "oneOf": [
-                                            {"type": "string", "enum": ["mom", "dad"]},
-                                            {
-                                                "type": "object",
-                                                "required": ["modulo_rules", "otherwise"],
-                                                "properties": {
-                                                    "modulo_rules": {
-                                                        "type": "array",
-                                                        "items": {
-                                                            "type": "object",
-                                                            "required": ["modulo", "remainder", "guardian"],
-                                                            "properties": {
-                                                                "modulo": {"type": "integer", "minimum": 2},
-                                                                "remainder": {"type": "integer", "minimum": 0},
-                                                                "guardian": {"type": "string", "enum": ["mom", "dad"]},
-                                                            },
-                                                        },
-                                                    },
-                                                    "otherwise": {"type": "string", "enum": ["mom", "dad"]},
-                                                },
-                                            },
-                                        ]
-                                    },
-                                },
-                            },
-                        },
+                        "description": "Rules for all 7 days in even weeks (CW2, CW4, CW6...), supports modulo rules",
                     },
                 },
             },
             "holidays": {
                 "type": "object",
-                "additionalProperties": {"type": "string", "enum": ["mom", "dad"]},
-                "description": "Override rules for specific dates (YYYY-MM-DD format)",
+                "additionalProperties": {"type": "string", "enum": ["guardian_1", "guardian_2"]},
+                "description": "Override rules for specific dates (YYYY-MM-DD format, DEPRECATED: use swaps)",
+            },
+            "swaps": {
+                "type": "object",
+                "description": "Date swaps/exceptions with optional colors and notes",
             },
         },
     }
@@ -368,25 +271,22 @@ def _generate_ai_instructions() -> dict[str, Any]:
         "understanding_schedule": [
             "Use ISO 8601 week numbering (week starts Monday, CW1 contains first Thursday of year)",
             "Check if week number is odd (CW%2==1) or even (CW%2==0)",
-            "For even week Sundays, check if CW%4==0 for special handoff rule",
+            "Odd weeks and even weeks each define custody for all 7 days",
+            "Any day can use modulo rules for complex patterns",
             "Always consider handoff logistics when planning activities",
         ],
         "making_decisions": [
             "Identify the date in question",
             "Calculate the ISO week number",
-            "Apply weekday or weekend rules based on day of week",
-            "Check for any holiday overrides",
+            "Determine if it's an odd or even week",
+            "Look up the guardian for that specific day in the appropriate week rules",
+            "Check for any swaps or holiday overrides",
             "Consider handoff times for activity planning",
         ],
         "drafting_messages": {
-            "for_scheduling": "Include specific date, day of week, parent with custody, and any handoff details",
+            "for_scheduling": "Include specific date, day of week, guardian with custody, and any handoff details",
             "for_conflicts": "Reference the specific rule that applies and the ISO week number",
             "for_planning": "Consider multi-day custody blocks for trips or extended activities",
-        },
-        "common_patterns": {
-            "mom_blocks": "Mom typically has Wed-Mon blocks on odd weeks (6 consecutive days)",
-            "dad_blocks": "Dad typically has Tue-Thu-Fri-Sat blocks on even weeks (can be 4-5 days)",
-            "sunday_special": "Every 4th even week (CW4, CW8, CW12...), Dad returns kids by 1 PM Sunday",
         },
     }
 

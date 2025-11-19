@@ -14,8 +14,8 @@ type DayRecord = dict[str, object]
 type Palette = dict[str, tuple[int, int, int]]
 
 _DEFAULT_PALETTE: Palette = {
-    "mom": (255, 20, 147),  # hot pink (DeepPink)
-    "dad": (25, 25, 112),  # darker blue (MidnightBlue)
+    "guardian_1": (255, 20, 147),  # hot pink (DeepPink)
+    "guardian_2": (25, 25, 112),  # darker blue (MidnightBlue)
     "holiday": (174, 203, 248),  # light blue override
     "unknown": (200, 200, 200),
 }
@@ -148,7 +148,7 @@ def render_schedule_image(
         start: Starting calendar date for the range
         weeks: Number of weeks represented in `records`
         out_path: File path to write the PNG image
-        palette: Optional mapping of guardian -> hex color (e.g. {"mom": "#F28B82"})
+        palette: Optional mapping of guardian -> hex color (e.g. {"guardian_1": "#F28B82"})
         start_weekday: First day of week in visualization ("monday" or "sunday", default: "monday")
 
     Returns:
@@ -419,6 +419,6 @@ def _week_label(records: list[DayRecord], start: date, week_idx: int) -> str:
 def _format_handoff(handoff: object) -> str:
     mapping = {
         "after_school": "Handoff: after school",
-        "dad_to_mom_by_1pm": "Handoff: Dad→Mom 1 PM",
+        "guardian_2_to_guardian_1_by_1pm": "Handoff: Guardian 2→Guardian 1 1 PM",
     }
     return mapping.get(str(handoff), f"Handoff: {handoff}")

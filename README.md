@@ -30,28 +30,32 @@ The calendar color-codes each day by guardian (hot pink for Mom, midnight blue f
 
 ## 📖 Rules Summary
 
-- **Weekdays**
-  - Monday → Mom
-  - Tuesday → Dad
-  - Wednesday → Mom
-  - Thursday → Dad
+- **Schedule Structure**
+  - Schedules are organized by **odd weeks** and **even weeks**
+  - Each week (odd or even) defines custody for all 7 days
+  - Any day can use simple guardian assignment or complex modulo rules
 
-- **Weekends**
-  - **Odd ISO weeks (CW1, CW3, CW5, …):** Mom has Friday–Sunday.
+- **Example Schedule**
+  - **Odd ISO weeks (CW1, CW3, CW5, …):**
+    - Monday-Thursday → Guardian 1
+    - Friday-Sunday → Guardian 1
   - **Even ISO weeks (CW2, CW4, CW6, …):**
-    - Dad has Friday + Saturday (can use modulo rules for flexibility).
+    - Monday → Guardian 2
+    - Tuesday → Guardian 1
+    - Wednesday → Guardian 2
+    - Thursday → Guardian 1
+    - Friday-Saturday → Guardian 2
     - Sunday uses **modulo rules** based on calendar week number:
-      - If `CW % 4 == 0`: Dad has Sunday, but must return children to Mom by **1 PM**.
-      - Otherwise: Mom has Sunday.
-    - **Advanced**: Any even-week day can use modulo rules for complex patterns (see Advanced Configuration below).
+      - If `CW % 4 == 0`: Guardian 2 has Sunday
+      - Otherwise: Guardian 1 has Sunday
 
 - **Handoffs**
-  - Weekdays: at **school** (drop-off/pick-up).
-  - **Special handoffs** can be configured for any weekday with specific times and guardians.
-  - Example: Sunday **Dad → Mom by 1 PM** when Dad has custody.
+  - Default handoff location applies whenever custody changes between guardians
+  - **Special handoffs** can be configured for any weekday with specific times and guardians
+  - Example: Sunday **Guardian 2 → Guardian 1 by 1 PM** when Guardian 2 has custody
 
 - **Calendar Week System**
-  - Uses **ISO 8601 week numbering** (CW1 begins on the Monday containing the first Thursday of the year).
+  - Uses **ISO 8601 week numbering** (CW1 begins on the Monday containing the first Thursday of the year)
 
 ---
 
@@ -60,62 +64,62 @@ The calendar color-codes each day by guardian (hot pink for Mom, midnight blue f
 ```json
 {
   "parties": {
-    "mom": "Jane",
-    "dad": "John",
+    "guardian_1": "Jane",
+    "guardian_2": "John",
     "children": ["Roger", "Jamie"]
   },
   "calendar_week_system": "ISO8601",
   "handoff": {
-    "weekdays": "school",
+    "default_location": "school",
     "special_handoffs": {
       "sunday": {
-        "from_guardian": "dad",
-        "to_guardian": "mom",
+        "from_guardian": "guardian_2",
+        "to_guardian": "guardian_1",
         "time": {
           "hour": 13,
           "minute": 0,
           "by": true
         },
-        "description": "dad_to_mom_by_1pm"
+        "description": "guardian_2_to_guardian_1_by_1pm"
       }
     }
   },
   "rules": {
-    "weekdays": {
-      "monday": "mom",
-      "tuesday": "dad",
-      "wednesday": "mom",
-      "thursday": "dad"
+    "odd_weeks": {
+      "monday": "guardian_1",
+      "tuesday": "guardian_1",
+      "wednesday": "guardian_1",
+      "thursday": "guardian_1",
+      "friday": "guardian_1",
+      "saturday": "guardian_1",
+      "sunday": "guardian_1"
     },
-    "weekends": {
-      "odd_weeks": {
-        "friday": "mom",
-        "saturday": "mom",
-        "sunday": "mom"
-      },
-      "even_weeks": {
-        "friday": "dad",
-        "saturday": "dad",
-        "sunday": {
-          "modulo_rules": [
-            {
-              "modulo": 4,
-              "remainder": 0,
-              "guardian": "dad"
-            }
-          ],
-          "otherwise": "mom"
-        }
+    "even_weeks": {
+      "monday": "guardian_2",
+      "tuesday": "guardian_1",
+      "wednesday": "guardian_2",
+      "thursday": "guardian_1",
+      "friday": "guardian_2",
+      "saturday": "guardian_2",
+      "sunday": {
+        "modulo_rules": [
+          {
+            "modulo": 4,
+            "remainder": 0,
+            "guardian": "guardian_2"
+          }
+        ],
+        "otherwise": "guardian_1"
       }
     }
   },
   "holidays": {
-    "2025-12-25": "mom",
-    "2025-07-04": "dad"
+    "2025-12-25": "guardian_1",
+    "2025-07-04": "guardian_2"
   },
   "visualization": {
-    "mom": "hot_pink",
-    "dad": "midnight_blue",
+    "guardian_1": "hot_pink",
+    "guardian_2": "midnight_blue",
     "holiday": "light_blue",
     "unknown": "gray"
   }
@@ -138,10 +142,10 @@ The schema supports flexible **modulo rules** for even-week days, allowing compl
     {
       "modulo": 4,
       "remainder": 0,
-      "guardian": "dad"
+      "guardian": "guardian_2"
     }
   ],
-  "otherwise": "mom"
+  "otherwise": "guardian_1"
 }
 ```
 
@@ -160,53 +164,57 @@ You can chain multiple modulo rules for a single day. Rules are evaluated in ord
     {
       "modulo": 3,
       "remainder": 0,
-      "guardian": "mom"
+      "guardian": "guardian_1"
     },
     {
       "modulo": 3,
       "remainder": 1,
-      "guardian": "dad"
+      "guardian": "guardian_2"
     }
   ],
-  "otherwise": "dad"
+  "otherwise": "guardian_2"
 }
 ```
 
-This gives Mom every CW divisible by 3 (CW6, CW12, CW18...), Dad when CW%3==1 (CW4, CW10, CW16...), and Dad otherwise (CW8, CW14...).
+This gives Guardian 1 every CW divisible by 3 (CW6, CW12, CW18...), Guardian 2 when CW%3==1 (CW4, CW10, CW16...), and Guardian 2 otherwise (CW8, CW14...).
 
 #### Advanced Example: Different Modulo on Each Day
 
 ```json
 "even_weeks": {
+  "monday": "guardian_2",
+  "tuesday": "guardian_1",
+  "wednesday": "guardian_2",
+  "thursday": "guardian_1",
   "friday": {
     "modulo_rules": [
       {
         "modulo": 4,
         "remainder": 2,
-        "guardian": "mom"
+        "guardian": "guardian_1"
       }
     ],
-    "otherwise": "dad"
+    "otherwise": "guardian_2"
   },
   "saturday": {
     "modulo_rules": [
       {
         "modulo": 3,
         "remainder": 0,
-        "guardian": "mom"
+        "guardian": "guardian_1"
       }
     ],
-    "otherwise": "dad"
+    "otherwise": "guardian_2"
   },
   "sunday": {
     "modulo_rules": [
       {
         "modulo": 4,
         "remainder": 0,
-        "guardian": "dad"
+        "guardian": "guardian_2"
       }
     ],
-    "otherwise": "mom"
+    "otherwise": "guardian_1"
   }
 }
 ```
@@ -217,9 +225,9 @@ Define specific dates that override normal schedule rules:
 
 ```json
 "holidays": {
-  "2025-12-25": "mom",
-  "2025-07-04": "dad",
-  "2025-11-27": "dad"
+  "2025-12-25": "guardian_1",
+  "2025-07-04": "guardian_2",
+  "2025-11-27": "guardian_2"
 }
 ```
 
@@ -234,17 +242,17 @@ Use `swaps` for schedule exceptions with automatic visual differentiation and op
 ```json
 "swaps": {
   "2025-12-25": {
-    "guardian": "mom",
+    "guardian": "guardian_1",
     "note": "Christmas",
-    "handoff": "at mom's house by 10am"
+    "handoff": "at guardian_1's house by 10am"
   },
   "2025-07-04": {
-    "guardian": "dad",
+    "guardian": "guardian_2",
     "color": "red",
     "note": "4th of July swap"
   },
   "2025-03-15": {
-    "guardian": "dad",
+    "guardian": "guardian_2",
     "note": "Spring break trade"
   }
 }
@@ -262,8 +270,8 @@ Configure swap shading and week start day in the `visualization` section:
 
 ```json
 "visualization": {
-  "mom": "hot_pink",
-  "dad": "midnight_blue",
+  "guardian_1": "hot_pink",
+  "guardian_2": "midnight_blue",
   "swap_shade_percent": 20,
   "start_weekday": "sunday"
 }
@@ -278,21 +286,21 @@ Configure specific handoff times and guardians for any weekday:
 
 ```json
 "handoff": {
-  "weekdays": "school",
+  "default_location": "school",
   "special_handoffs": {
     "sunday": {
-      "from_guardian": "dad",
-      "to_guardian": "mom",
+      "from_guardian": "guardian_2",
+      "to_guardian": "guardian_1",
       "time": {
         "hour": 13,
         "minute": 0,
         "by": true
       },
-      "description": "dad_to_mom_by_1pm"
+      "description": "guardian_2_to_guardian_1_by_1pm"
     },
     "friday": {
-      "from_guardian": "mom",
-      "to_guardian": "dad",
+      "from_guardian": "guardian_1",
+      "to_guardian": "guardian_2",
       "time": {
         "hour": 15,
         "minute": 30
@@ -327,22 +335,11 @@ Configure specific handoff times and guardians for any weekday:
 
 **Examples:**
 
-Simple weekday handoffs:
+Simple default handoff location:
 
 ```json
 "handoff": {
-  "weekdays": "school"
-}
-```
-
-Detailed weekday handoffs with time:
-
-```json
-"handoff": {
-  "weekdays": {
-    "location": "school",
-    "time": "3pm"
-  }
+  "default_location": "school"
 }
 ```
 
@@ -350,20 +347,20 @@ Multiple special handoffs:
 
 ```json
 "handoff": {
-  "weekdays": "school",
+  "default_location": "school",
   "special_handoffs": {
     "monday": {
-      "from_guardian": "dad",
-      "to_guardian": "mom",
+      "from_guardian": "guardian_2",
+      "to_guardian": "guardian_1",
       "time": {
         "hour": 18,
         "minute": 0
       },
-      "description": "Dad drops off at Mom's house"
+      "description": "Guardian 2 drops off at Guardian 1's house"
     },
     "thursday": {
-      "from_guardian": "mom",
-      "to_guardian": "dad",
+      "from_guardian": "guardian_1",
+      "to_guardian": "guardian_2",
       "time": {
         "hour": 17,
         "minute": 0
@@ -379,8 +376,8 @@ Customize PNG calendar colors using named color presets or hex strings:
 
 ```json
 "visualization": {
-  "mom": "coral",
-  "dad": "mint_green",
+  "guardian_1": "coral",
+  "guardian_2": "mint_green",
   "holiday": "gold",
   "unknown": "light_gray"
 }
@@ -402,8 +399,8 @@ You can also use hex strings: `"#FF1493"`, `"#81C995"`, etc.
 
 **Default Colors:**
 
-- `mom`: `hot_pink` (`#FF1493`)
-- `dad`: `midnight_blue` (`#191970`)
+- `guardian_1`: `hot_pink` (`#FF1493`)
+- `guardian_2`: `midnight_blue` (`#191970`)
 - `holiday`: `light_blue` (`#AECBF8`)
 - `unknown`: `gray` (`#C8C8C8`)
 
@@ -439,10 +436,10 @@ This follows the [XDG Base Directory specification](https://specifications.freed
 
 ```bash
 # Generate a new schedule configuration (saves to ~/.config/family-schedulekit/schedule.json)
-family-schedulekit init --mom ParentA --dad ParentB --child Child1 --child Child2
+family-schedulekit init --guardian-1 ParentA --guardian-2 ParentB --child Child1 --child Child2
 
 # Or specify a custom location
-family-schedulekit init --mom ParentA --dad ParentB --child Child1 --child Child2 -o path/to/config.json
+family-schedulekit init --guardian-1 ParentA --guardian-2 ParentB --child Child1 --child Child2 -o path/to/config.json
 
 # Resolve a specific date (uses ~/.config/family-schedulekit/schedule.json by default)
 family-schedulekit resolve 2025-02-23
@@ -467,8 +464,8 @@ family-schedulekit export --config path/to/config.json --weeks 6 --formats png
 
 **PNG Color Scheme**: Calendar visualizations use color-coded cells to distinguish guardians:
 
-- **Mom**: Hot Pink (`#FF1493` / DeepPink)
-- **Dad**: Dark Blue (`#191970` / MidnightBlue)
+- **Guardian 1**: Hot Pink (`#FF1493` / DeepPink)
+- **Guardian 2**: Dark Blue (`#191970` / MidnightBlue)
 - **Holiday override**: Light Blue (`#AECBF8`)
 
 The colors are chosen for high contrast and accessibility, with automatic text color selection (black or white) based on background luminance.
@@ -520,7 +517,7 @@ from datetime import date
 config = load_default_config()
 result = resolve_for_date(date(2025, 2, 23), config)
 print(result)
-# {'date': '2025-02-23', 'calendar_week': 8, 'guardian': 'dad', 'handoff': 'dad_to_mom_by_1pm'}
+# {'date': '2025-02-23', 'calendar_week': 8, 'guardian': 'guardian_2', 'handoff': 'guardian_2_to_guardian_1_by_1pm'}
 ```
 
 #### Custom PNG Colors
@@ -539,10 +536,10 @@ records = resolve_range(date(2025, 2, 3), weeks=6, cfg=config)
 
 # Custom color palette (named colors, hex strings, or RGB tuples)
 custom_palette = {
-    "mom": "coral",          # Named color
-    "dad": "mint_green",     # Named color
-    "holiday": "#FFD700"     # Hex string
-    # Can also use RGB tuples: "mom": (242, 139, 130)
+    "guardian_1": "coral",          # Named color
+    "guardian_2": "mint_green",     # Named color
+    "holiday": "#FFD700"            # Hex string
+    # Can also use RGB tuples: "guardian_1": (242, 139, 130)
 }
 
 render_schedule_image(
@@ -556,8 +553,8 @@ render_schedule_image(
 
 Default colors:
 
-- `mom`: `#FF1493` (DeepPink / Hot Pink)
-- `dad`: `#191970` (MidnightBlue / Dark Blue)
+- `guardian_1`: `#FF1493` (DeepPink / Hot Pink)
+- `guardian_2`: `#191970` (MidnightBlue / Dark Blue)
 - `holiday`: `#AECBF8` (Light Blue)
 - `unknown`: `#C8C8C8` (Gray)
 

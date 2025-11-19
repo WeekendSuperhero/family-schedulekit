@@ -1,71 +1,71 @@
 {
   "parties": {
-    "mom": "Jane",
-    "dad": "John",
-    "children": ["Roger", "Jamie"]
+    "guardian_1": "ParentA",
+    "guardian_2": "ParentB",
+    "children": ["Child1", "Child2"]
   },
   "calendar_week_system": "ISO8601",
   "handoff": {
-    "weekdays": "school",
+    "default_location": "school",
     "special_handoffs": {
       "sunday": {
-        "from_guardian": "dad",
-        "to_guardian": "mom",
+        "from_guardian": "guardian_2",
+        "to_guardian": "guardian_1",
         "time": {
           "hour": 13,
           "minute": 0,
           "use_24h": false,
           "by": true
         },
-        "description": "dad_to_mom_by_1pm"
+        "description": "guardian_2_to_guardian_1_by_1pm"
       }
     }
   },
   "rules": {
-    "weekdays": {
-      "monday": "mom",
-      "tuesday": "dad",
-      "wednesday": "mom",
-      "thursday": "dad"
+    "odd_weeks": {
+      "monday": "guardian_1",
+      "tuesday": "guardian_1",
+      "wednesday": "guardian_1",
+      "thursday": "guardian_1",
+      "friday": "guardian_1",
+      "saturday": "guardian_1",
+      "sunday": "guardian_1"
     },
-    "weekends": {
-      "odd_weeks": {
-        "friday": "mom",
-        "saturday": "mom",
-        "sunday": "mom"
-      },
-      "even_weeks": {
-        "friday": "dad",
-        "saturday": "dad",
-        "sunday": {
-          "modulo_rules": [
-            {
-              "modulo": 4,
-              "remainder": 0,
-              "guardian": "dad"
-            }
-          ],
-          "otherwise": "mom"
-        }
+    "even_weeks": {
+      "monday": "guardian_2",
+      "tuesday": "guardian_1",
+      "wednesday": "guardian_2",
+      "thursday": "guardian_1",
+      "friday": "guardian_2",
+      "saturday": "guardian_2",
+      "sunday": {
+        "modulo_rules": [
+          {
+            "modulo": 4,
+            "remainder": 0,
+            "guardian": "guardian_2"
+          }
+        ],
+        "otherwise": "guardian_1"
       }
     }
   },
   "holidays": {},
   "swaps": {
     "2025-12-25": {
-      "guardian": "mom",
+      "guardian": "guardian_1",
       "note": "Christmas",
-      "handoff": "at mom's house by 10am"
+      "handoff": "at guardian_1's house by 10am"
     },
     "2025-07-04": {
-      "guardian": "dad",
+      "guardian": "guardian_2",
       "color": "red",
       "note": "4th of July"
     }
   },
   "visualization": {
-    "mom": "hot_pink",
-    "dad": "midnight_blue",
+    "guardian_1": "hot_pink",
+    "guardian_2": "midnight_blue",
     "holiday": "light_blue",
     "unknown": "gray",
     "swap_shade_percent": 20,

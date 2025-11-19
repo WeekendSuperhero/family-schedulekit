@@ -76,7 +76,7 @@ def _mk_uid(prefix: str, dt: date) -> str:
 
 
 def _ical_for_records(records: list[DayRecord]) -> str:
-    # All-day events (midnight to midnight). Sunday Dad->Mom handoff at 13:00 note.
+    # All-day events (midnight to midnight). Sunday Guardian 2->Guardian 1 handoff at 13:00 note.
     # No timezone complexity; all-day events use DATE values.
     lines = [
         "BEGIN:VCALENDAR",
@@ -93,8 +93,8 @@ def _ical_for_records(records: list[DayRecord]) -> str:
         desc = f"ISO week {r['calendar_week']} ({r['calendar_week_system']})"
         if r.get("handoff") == "after_school":
             desc += "\\nHandoff: after school (Friday)."
-        elif r.get("handoff") == "dad_to_mom_by_1pm":
-            desc += "\\nHandoff: Dad → Mom by 1 PM (Sunday)."
+        elif r.get("handoff") == "guardian_2_to_guardian_1_by_1pm":
+            desc += "\\nHandoff: Guardian 2 → Guardian 1 by 1 PM (Sunday)."
         uid = _mk_uid("day", d)
         lines.extend(
             [
@@ -149,11 +149,11 @@ def _swap_messages_for_records(records: list[DayRecord]) -> list[dict[str, str]]
         # Sunday exception messaging
         if day is Weekday.SUNDAY:
             who = str(r["guardian"])
-            if r.get("handoff") == "dad_to_mom_by_1pm":
+            if r.get("handoff") == "guardian_2_to_guardian_1_by_1pm":
                 out.append(
                     {
-                        "input": f"Draft a polite note for Sunday {date_str} confirming drop-off from Dad to Mom by 1 PM.",
-                        "ideal": f"Hi! Confirming Sunday ({date_str}) drop-off: Dad → Mom by 1:00 PM. See you then.",
+                        "input": f"Draft a polite note for Sunday {date_str} confirming drop-off from Guardian 2 to Guardian 1 by 1 PM.",
+                        "ideal": f"Hi! Confirming Sunday ({date_str}) drop-off: Guardian 2 → Guardian 1 by 1:00 PM. See you then.",
                     }
                 )
             else:
@@ -221,8 +221,8 @@ def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel, start_weekday_over
 
         # Convert config visualization palette to dict for render_schedule_image
         palette: dict[str, str | tuple[int, int, int] | int] = {
-            "mom": cfg.visualization.mom,
-            "dad": cfg.visualization.dad,
+            "guardian_1": cfg.visualization.guardian_1,
+            "guardian_2": cfg.visualization.guardian_2,
             "swap_shade_percent": cfg.visualization.swap_shade_percent,
         }
         if cfg.visualization.holiday:

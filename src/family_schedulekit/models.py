@@ -53,14 +53,7 @@ class Weekday(StrEnum):
         return self.value
 
 
-type Guardian = Literal["mom", "dad"]
-
-
-class WeekdayRules(BaseModel):
-    monday: Guardian
-    tuesday: Guardian
-    wednesday: Guardian
-    thursday: Guardian
+type Guardian = Literal["guardian_1", "guardian_2"]
 
 
 class CalendarWeekModuloRule(BaseModel):
@@ -89,31 +82,26 @@ class WeekdayRule(BaseModel):
     otherwise: Guardian = Field(description="Guardian when no modulo rules match")
 
 
-class WeekendOdd(BaseModel):
-    friday: Guardian
-    saturday: Guardian
-    sunday: Guardian
+class WeekRules(BaseModel):
+    """Rules for all 7 days of the week."""
 
-
-class WeekendEven(BaseModel):
+    monday: Guardian | WeekdayRule
+    tuesday: Guardian | WeekdayRule
+    wednesday: Guardian | WeekdayRule
+    thursday: Guardian | WeekdayRule
     friday: Guardian | WeekdayRule
     saturday: Guardian | WeekdayRule
     sunday: Guardian | WeekdayRule
 
 
-class Weekends(BaseModel):
-    odd_weeks: WeekendOdd
-    even_weeks: WeekendEven
-
-
 class Rules(BaseModel):
-    weekdays: WeekdayRules
-    weekends: Weekends
+    odd_weeks: WeekRules
+    even_weeks: WeekRules
 
 
 class Parties(BaseModel):
-    mom: str
-    dad: str
+    guardian_1: str
+    guardian_2: str
     children: list[str]
 
 
@@ -161,17 +149,10 @@ class SpecialHandoff(BaseModel):
     description: str | None = Field(default=None, description="Human-readable description")
 
 
-class WeekdayHandoffs(BaseModel):
-    """Handoff rules for weekdays (Monday-Thursday)."""
-
-    location: str = Field(default="school", description="Where weekday handoffs occur")
-    time: str | None = Field(default=None, description="Specific time if needed")
-
-
 class Handoff(BaseModel):
     """Handoff logistics and timing rules."""
 
-    weekdays: WeekdayHandoffs | Literal["school"] = Field(default="school", description="Weekday handoff rules (simple location or detailed object)")
+    default_location: str = Field(default="school", description="Default location/description for handoffs when custody changes")
     special_handoffs: dict[Weekday, SpecialHandoff] = Field(default_factory=dict, description="Special handoff rules for specific weekdays")
 
 
@@ -181,8 +162,8 @@ class VisualizationPalette(BaseModel):
     Supports named colors (e.g., 'pink', 'blue') or hex strings (e.g., '#FF1493').
     """
 
-    mom: ColorValue = Field(default="hot_pink", description="Color for mom's custody days")
-    dad: ColorValue = Field(default="midnight_blue", description="Color for dad's custody days")
+    guardian_1: ColorValue = Field(default="hot_pink", description="Color for guardian_1's custody days")
+    guardian_2: ColorValue = Field(default="midnight_blue", description="Color for guardian_2's custody days")
     holiday: ColorValue | None = Field(default="light_blue", description="Color for holiday overrides")
     unknown: ColorValue | None = Field(default="gray", description="Color for unknown/error states")
     swap_shade_percent: int = Field(default=20, ge=0, le=100, description="Percentage to lighten/darken swap colors (0-100, default 20)")

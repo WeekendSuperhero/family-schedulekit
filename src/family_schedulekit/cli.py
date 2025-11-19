@@ -28,8 +28,8 @@ def _cmd_init(sp):
         outfile = Path(sp.outfile)
 
     params = InitParams(
-        mom=sp.mom,
-        dad=sp.dad,
+        guardian_1=sp.guardian_1,
+        guardian_2=sp.guardian_2,
         children=sp.child,
         template=sp.template,
         outfile=outfile,
@@ -147,8 +147,8 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     ap_init = sub.add_parser("init", help="Generate a new schedule config")
-    ap_init.add_argument("--mom", required=True)
-    ap_init.add_argument("--dad", required=True)
+    ap_init.add_argument("--guardian-1", dest="guardian_1", required=True)
+    ap_init.add_argument("--guardian-2", dest="guardian_2", required=True)
     ap_init.add_argument("--child", action="append", default=[])
     ap_init.add_argument("--template", default="generic", choices=["generic"])
     ap_init.add_argument("-o", "--outfile", default=None, help="Output file (default: ~/.config/family-schedulekit/schedule.json)")
