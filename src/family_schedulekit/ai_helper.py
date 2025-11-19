@@ -5,6 +5,8 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from .models import ScheduleConfigModel
 from .resolver import iso_week, resolve_for_date, resolve_week_of
 from .resources import load_default_config
@@ -301,7 +303,7 @@ def export_ai_context(
     Export AI context to a JSON file or return as string.
 
     Args:
-        config_path: Path to schedule configuration file
+        config_path: Path to schedule configuration file (supports .yaml, .yml, or .json)
         output_path: Where to save the AI context (if None, returns string)
         target_date: Starting date in YYYY-MM-DD format
         weeks_ahead: How many weeks of examples to include
@@ -309,9 +311,15 @@ def export_ai_context(
     Returns:
         JSON string of the AI context
     """
-    # Load configuration
+    # Load configuration with format auto-detection
     if config_path:
-        cfg = ScheduleConfigModel.model_validate_json(Path(config_path).read_text())
+        path = Path(config_path)
+        content = path.read_text()
+        if path.suffix in (".yaml", ".yml"):
+            data = yaml.safe_load(content)
+            cfg = ScheduleConfigModel.model_validate(data)
+        else:
+            cfg = ScheduleConfigModel.model_validate_json(content)
     else:
         cfg = load_default_config()
 
