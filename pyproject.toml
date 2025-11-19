@@ -74,6 +74,15 @@ warn_redundant_casts = true
 warn_unused_configs = true
 strict = false
 
+[[tool.mypy.overrides]]
+module = "webcolors"
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 addopts = "-q"
 pythonpath = ["src"]
+
+[dependency-groups]
+dev = [
+    "types-pyyaml>=6.0.12.20250915",
+]
