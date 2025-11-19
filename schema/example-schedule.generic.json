@@ -64,9 +64,9 @@
     }
   },
   "visualization": {
-    "guardian_1": "hot_pink",
-    "guardian_2": "midnight_blue",
-    "holiday": "light_blue",
+    "guardian_1": "hotpink",
+    "guardian_2": "midnightblue",
+    "holiday": "lightblue",
     "unknown": "gray",
     "swap_shade_percent": 20,
     "start_weekday": "monday"

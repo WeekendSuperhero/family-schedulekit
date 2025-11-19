@@ -11,6 +11,7 @@ except ImportError:  # pragma: no cover
     argcomplete = None  # type: ignore[assignment]
 
 from .ai_helper import export_ai_context
+from .colors import list_all_colors
 from .config import config_exists, ensure_config_dir, get_config_path
 from .exporter import ExportPlan, write_exports
 from .generator import InitParams, write_config
@@ -39,32 +40,73 @@ def _cmd_init(sp):
     print(f"Wrote schedule config → {out}")
 
 
+def _map_guardian_to_name(guardian_key: str, cfg: ScheduleConfigModel) -> str:
+    """Map guardian_1/guardian_2 to actual names from config."""
+    if guardian_key == "guardian_1":
+        return cfg.parties.guardian_1
+    elif guardian_key == "guardian_2":
+        return cfg.parties.guardian_2
+    return guardian_key
+
+
 def _cmd_resolve(sp):
     cfg = _load_config(sp.config)
     if sp.week_of:
-        anchor = datetime.strptime(sp.week_of, "%Y-%m-%d").date()
+        # If --week-of is specified with a value, use it; otherwise default to current week
+        if sp.week_of == "current":
+            anchor = _get_most_recent_monday()
+        else:
+            anchor = datetime.strptime(sp.week_of, "%Y-%m-%d").date()
         week = resolve_week_of(anchor, cfg)
+        # Map guardian keys to actual names
+        resolved_schedule = {}
+        for k, v in week.items():
+            resolved_schedule[k] = {"guardian": _map_guardian_to_name(v["guardian"], cfg), "handoff": v["handoff"]}
         print(
             json.dumps(
                 {
                     "calendar_week": iso_week(anchor),
                     "calendar_week_system": cfg.calendar_week_system,
-                    "resolved_schedule": {k: {"guardian": v["guardian"], "handoff": v["handoff"]} for k, v in week.items()},
+                    "resolved_schedule": resolved_schedule,
                 },
                 indent=2,
             )
         )
     else:
+        # Default to current week if no date provided
         if not sp.date:
-            raise SystemExit("Provide a date (YYYY-MM-DD) or use --week-of")
-        target = datetime.strptime(sp.date, "%Y-%m-%d").date()
-        print(json.dumps(resolve_for_date(target, cfg), indent=2))
+            anchor = _get_most_recent_monday()
+            week = resolve_week_of(anchor, cfg)
+            # Map guardian keys to actual names
+            resolved_schedule = {}
+            for k, v in week.items():
+                resolved_schedule[k] = {"guardian": _map_guardian_to_name(v["guardian"], cfg), "handoff": v["handoff"]}
+            print(
+                json.dumps(
+                    {
+                        "calendar_week": iso_week(anchor),
+                        "calendar_week_system": cfg.calendar_week_system,
+                        "resolved_schedule": resolved_schedule,
+                    },
+                    indent=2,
+                )
+            )
+        else:
+            target = datetime.strptime(sp.date, "%Y-%m-%d").date()
+            result = resolve_for_date(target, cfg)
+            # Map guardian key to actual name
+            result["guardian"] = _map_guardian_to_name(result["guardian"], cfg)
+            print(json.dumps(result, indent=2))
 
 
 def _cmd_list(sp):
     print("Available templates:")
     for t in list_templates():
         print("  -", t)
+
+
+def _cmd_list_colors(sp):
+    list_all_colors()
 
 
 def _get_most_recent_monday():
@@ -155,14 +197,17 @@ def main():
     ap_init.add_argument("-f", "--force", action="store_true")
     ap_init.set_defaults(func=_cmd_init)
 
-    ap_res = sub.add_parser("resolve", help="Resolve a date or week")
-    ap_res.add_argument("date", nargs="?")
-    ap_res.add_argument("--week-of")
+    ap_res = sub.add_parser("resolve", help="Resolve a date or week (defaults to current week)")
+    ap_res.add_argument("date", nargs="?", help="Date in YYYY-MM-DD format (optional, defaults to current week)")
+    ap_res.add_argument("--week-of", nargs="?", const="current", help="Show full week starting from date (or 'current' for this week)")
     ap_res.add_argument("--config", default=None, help="Config file (default: ~/.config/family-schedulekit/schedule.json or example)")
     ap_res.set_defaults(func=_cmd_resolve)
 
     ap_list = sub.add_parser("list-templates", help="Show available templates")
     ap_list.set_defaults(func=_cmd_list)
+
+    ap_colors = sub.add_parser("list-colors", help="Show all available CSS3 color names with terminal preview")
+    ap_colors.set_defaults(func=_cmd_list_colors)
 
     ap_exp = sub.add_parser("export", help="Export AI-ready files over a date range")
     ap_exp.add_argument(

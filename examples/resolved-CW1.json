@@ -3,31 +3,31 @@
   "calendar_week_system": "ISO8601",
   "resolved_schedule": {
     "monday": {
-      "guardian": "guardian_1",
-      "handoff": "school"
+      "guardian": "Dee Fault",
+      "handoff": null
     },
     "tuesday": {
-      "guardian": "guardian_1",
-      "handoff": null
+      "guardian": "Nora Mal",
+      "handoff": "school"
     },
     "wednesday": {
-      "guardian": "guardian_1",
-      "handoff": null
+      "guardian": "Dee Fault",
+      "handoff": "school"
     },
     "thursday": {
-      "guardian": "guardian_1",
-      "handoff": null
+      "guardian": "Nora Mal",
+      "handoff": "school"
     },
     "friday": {
-      "guardian": "guardian_1",
-      "handoff": null
+      "guardian": "Dee Fault",
+      "handoff": "school"
     },
     "saturday": {
-      "guardian": "guardian_1",
+      "guardian": "Dee Fault",
       "handoff": null
     },
     "sunday": {
-      "guardian": "guardian_1",
+      "guardian": "Dee Fault",
       "handoff": null
     }
   }
