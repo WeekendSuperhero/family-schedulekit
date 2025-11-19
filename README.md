@@ -1,5 +1,10 @@
 # family-schedulekit
 
+[![PyPI version](https://badge.fury.io/py/family-schedulekit.svg)](https://badge.fury.io/py/family-schedulekit)
+[![Python Versions](https://img.shields.io/pypi/pyversions/family-schedulekit.svg)](https://pypi.org/project/family-schedulekit/)
+[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue.svg)](LICENSE-NONCOMMERCIAL)
+[![Downloads](https://pepy.tech/badge/family-schedulekit)](https://pepy.tech/project/family-schedulekit)
+
 A reusable, machine-readable schema for defining **family custody / parenting schedules**.
 Designed to be **AI-friendly** (JSON rules + examples) so you can generate clear messages, calendar entries, or visualizations for any given date.
 
@@ -18,13 +23,38 @@ You can reuse this schema for any co-parenting arrangement by changing the `part
 
 ---
 
-## 📸 Example Output
+## Why family-schedulekit?
 
-Here's what a 8-week schedule visualization looks like:
+✅ **AI-Ready**: JSON schema designed for LLM integration  
+✅ **Legally Sound**: ISO 8601 week numbering matches court documents  
+✅ **Visual**: Generate beautiful PNG calendars  
+✅ **Flexible**: Support for complex modulo rules and exceptions  
+✅ **Type-Safe**: Full Pydantic validation  
+✅ **CLI + API**: Use from command line or Python code
+
+---
+
+## 📸 Visual Examples
+
+### Calendar View
 
 ![Sample Schedule Calendar](https://raw.githubusercontent.com/weekendsuperhero/family-schedulekit/main/examples/images/sample-schedule.png)
 
-The calendar color-codes each day by guardian (hot pink for Mom, midnight blue for Dad), making it easy to see custody patterns at a glance. You can export schedules in multiple formats (JSON, PNG) and customize colors to match your preferences.
+_Hot pink = Guardian 1, Midnight blue = Guardian 2_
+
+The calendar color-codes each day by guardian (hot pink for Guardian 1, midnight blue for Guardian 2), making it easy to see custody patterns at a glance. You can export schedules in multiple formats (JSON, PNG) and customize colors to match your preferences.
+
+### CLI Output Example
+
+```bash
+$ family-schedulekit resolve 2025-02-23
+{
+  "date": "2025-02-23",
+  "calendar_week": 8,
+  "guardian": "guardian_2",
+  "handoff": "guardian_2_to_guardian_1_by_1pm"
+}
+```
 
 ---
 
@@ -59,72 +89,69 @@ The calendar color-codes each day by guardian (hot pink for Mom, midnight blue f
 
 ---
 
-## 📦 JSON Template
+## 📦 Configuration Template
 
-```json
-{
-  "parties": {
-    "guardian_1": "Dee Fault",
-    "guardian_2": "Nora Mal",
-    "children": ["Buggy", "Piplet"]
-  },
-  "calendar_week_system": "ISO8601",
-  "handoff": {
-    "default_location": "school",
-    "special_handoffs": {
-      "sunday": {
-        "from_guardian": "guardian_2",
-        "to_guardian": "guardian_1",
-        "time": {
-          "hour": 13,
-          "minute": 0,
-          "by": true
-        },
-        "description": "guardian_2_to_guardian_1_by_1pm"
-      }
-    }
-  },
-  "rules": {
-    "odd_weeks": {
-      "monday": "guardian_1",
-      "tuesday": "guardian_1",
-      "wednesday": "guardian_1",
-      "thursday": "guardian_1",
-      "friday": "guardian_1",
-      "saturday": "guardian_1",
-      "sunday": "guardian_1"
-    },
-    "even_weeks": {
-      "monday": "guardian_2",
-      "tuesday": "guardian_1",
-      "wednesday": "guardian_2",
-      "thursday": "guardian_1",
-      "friday": "guardian_2",
-      "saturday": "guardian_2",
-      "sunday": {
-        "modulo_rules": [
-          {
-            "modulo": 4,
-            "remainder": 0,
-            "guardian": "guardian_2"
-          }
-        ],
-        "otherwise": "guardian_1"
-      }
-    }
-  },
-  "holidays": {
-    "2025-12-25": "guardian_1",
-    "2025-07-04": "guardian_2"
-  },
-  "visualization": {
-    "guardian_1": "hotpink",
-    "guardian_2": "midnightblue",
-    "holiday": "lightblue",
-    "unknown": "gray"
-  }
-}
+The default configuration format is **YAML** (JSON is also supported).
+
+```yaml
+version: "1.0.0"
+
+parties:
+  guardian_1: Dee Fault
+  guardian_2: Nora Mal
+  children:
+    - Buggy
+    - Piplet
+
+calendar_week_system: ISO8601
+
+handoff:
+  default_location: school
+  special_handoffs:
+    sunday:
+      from_guardian: guardian_2
+      to_guardian: guardian_1
+      time:
+        hour: 13
+        minute: 0
+        by: true
+      description: guardian_2_to_guardian_1_by_1pm
+
+rules:
+  odd_weeks:
+    monday: guardian_1
+    tuesday: guardian_1
+    wednesday: guardian_1
+    thursday: guardian_1
+    friday: guardian_1
+    saturday: guardian_1
+    sunday: guardian_1
+  even_weeks:
+    monday: guardian_2
+    tuesday: guardian_1
+    wednesday: guardian_2
+    thursday: guardian_1
+    friday: guardian_2
+    saturday: guardian_2
+    sunday:
+      modulo_rules:
+        - modulo: 4
+          remainder: 0
+          guardian: guardian_2
+      otherwise: guardian_1
+
+holidays:
+  "2025-12-25": guardian_1
+  "2025-07-04": guardian_2
+
+visualization:
+  guardian_1: hotpink
+  guardian_2: midnightblue
+  holiday: lightblue
+  unknown: gray
 ```
+
+> **Note**: Both YAML (`.yaml`, `.yml`) and JSON (`.json`) formats are supported. YAML is recommended for better readability.
 
 ---
 
@@ -136,17 +163,13 @@ The schema supports flexible **modulo rules** for even-week days, allowing compl
 
 #### Basic Modulo Rule Structure
 
-```json
-{
-  "modulo_rules": [
-    {
-      "modulo": 4,
-      "remainder": 0,
-      "guardian": "guardian_2"
-    }
-  ],
-  "otherwise": "guardian_1"
-}
+```yaml
+sunday:
+  modulo_rules:
+    - modulo: 4
+      remainder: 0
+      guardian: guardian_2
+  otherwise: guardian_1
 ```
 
 - **`modulo`**: The divisor for the modulo operation (≥2)
@@ -158,77 +181,57 @@ The schema supports flexible **modulo rules** for even-week days, allowing compl
 
 You can chain multiple modulo rules for a single day. Rules are evaluated in order:
 
-```json
-"saturday": {
-  "modulo_rules": [
-    {
-      "modulo": 3,
-      "remainder": 0,
-      "guardian": "guardian_1"
-    },
-    {
-      "modulo": 3,
-      "remainder": 1,
-      "guardian": "guardian_2"
-    }
-  ],
-  "otherwise": "guardian_2"
-}
+```yaml
+saturday:
+  modulo_rules:
+    - modulo: 3
+      remainder: 0
+      guardian: guardian_1
+    - modulo: 3
+      remainder: 1
+      guardian: guardian_2
+  otherwise: guardian_2
 ```
 
 This gives Guardian 1 every CW divisible by 3 (CW6, CW12, CW18...), Guardian 2 when CW%3==1 (CW4, CW10, CW16...), and Guardian 2 otherwise (CW8, CW14...).
 
 #### Advanced Example: Different Modulo on Each Day
 
-```json
-"even_weeks": {
-  "monday": "guardian_2",
-  "tuesday": "guardian_1",
-  "wednesday": "guardian_2",
-  "thursday": "guardian_1",
-  "friday": {
-    "modulo_rules": [
-      {
-        "modulo": 4,
-        "remainder": 2,
-        "guardian": "guardian_1"
-      }
-    ],
-    "otherwise": "guardian_2"
-  },
-  "saturday": {
-    "modulo_rules": [
-      {
-        "modulo": 3,
-        "remainder": 0,
-        "guardian": "guardian_1"
-      }
-    ],
-    "otherwise": "guardian_2"
-  },
-  "sunday": {
-    "modulo_rules": [
-      {
-        "modulo": 4,
-        "remainder": 0,
-        "guardian": "guardian_2"
-      }
-    ],
-    "otherwise": "guardian_1"
-  }
-}
+```yaml
+even_weeks:
+  monday: guardian_2
+  tuesday: guardian_1
+  wednesday: guardian_2
+  thursday: guardian_1
+  friday:
+    modulo_rules:
+      - modulo: 4
+        remainder: 2
+        guardian: guardian_1
+    otherwise: guardian_2
+  saturday:
+    modulo_rules:
+      - modulo: 3
+        remainder: 0
+        guardian: guardian_1
+    otherwise: guardian_2
+  sunday:
+    modulo_rules:
+      - modulo: 4
+        remainder: 0
+        guardian: guardian_2
+    otherwise: guardian_1
 ```
 
 ### Holiday Overrides
 
 Define specific dates that override normal schedule rules:
 
-```json
-"holidays": {
-  "2025-12-25": "guardian_1",
-  "2025-07-04": "guardian_2",
-  "2025-11-27": "guardian_2"
-}
+```yaml
+holidays:
+  "2025-12-25": guardian_1
+  "2025-07-04": guardian_2
+  "2025-11-27": guardian_2
 ```
 
 Dates must be in `YYYY-MM-DD` format. When a date appears in holidays, it completely overrides weekday/weekend rules.
@@ -239,23 +242,19 @@ Dates must be in `YYYY-MM-DD` format. When a date appears in holidays, it comple
 
 Use `swaps` for schedule exceptions with automatic visual differentiation and optional notes:
 
-```json
-"swaps": {
-  "2025-12-25": {
-    "guardian": "guardian_1",
-    "note": "Christmas",
-    "handoff": "at guardian_1's house by 10am"
-  },
-  "2025-07-04": {
-    "guardian": "guardian_2",
-    "color": "red",
-    "note": "4th of July swap"
-  },
-  "2025-03-15": {
-    "guardian": "guardian_2",
-    "note": "Spring break trade"
-  }
-}
+```yaml
+swaps:
+  "2025-12-25":
+    guardian: guardian_1
+    note: Christmas
+    handoff: at guardian_1's house by 10am
+  "2025-07-04":
+    guardian: guardian_2
+    color: red
+    note: 4th of July swap
+  "2025-03-15":
+    guardian: guardian_2
+    note: Spring break trade
 ```
 
 **Swap Features:**
@@ -268,13 +267,12 @@ Use `swaps` for schedule exceptions with automatic visual differentiation and op
 **Visualization Colors:**
 Configure swap shading and week start day in the `visualization` section:
 
-```json
-"visualization": {
-  "guardian_1": "hot_pink",
-  "guardian_2": "midnight_blue",
-  "swap_shade_percent": 20,
-  "start_weekday": "sunday"
-}
+```yaml
+visualization:
+  guardian_1: hot_pink
+  guardian_2: midnight_blue
+  swap_shade_percent: 20
+  start_weekday: sunday
 ```
 
 - `swap_shade_percent`: Controls how much to lighten (for dark colors) or darken (for light colors) swap dates. Default is 20%.
@@ -284,31 +282,25 @@ Configure swap shading and week start day in the `visualization` section:
 
 Configure specific handoff times and guardians for any weekday:
 
-```json
-"handoff": {
-  "default_location": "school",
-  "special_handoffs": {
-    "sunday": {
-      "from_guardian": "guardian_2",
-      "to_guardian": "guardian_1",
-      "time": {
-        "hour": 13,
-        "minute": 0,
-        "by": true
-      },
-      "description": "guardian_2_to_guardian_1_by_1pm"
-    },
-    "friday": {
-      "from_guardian": "guardian_1",
-      "to_guardian": "guardian_2",
-      "time": {
-        "hour": 15,
-        "minute": 30
-      },
-      "description": "Weekend pickup at school"
-    }
-  }
-}
+```yaml
+handoff:
+  default_location: school
+  special_handoffs:
+    sunday:
+      from_guardian: guardian_2
+      to_guardian: guardian_1
+      time:
+        hour: 13
+        minute: 0
+        by: true
+      description: guardian_2_to_guardian_1_by_1pm
+    friday:
+      from_guardian: guardian_1
+      to_guardian: guardian_2
+      time:
+        hour: 15
+        minute: 30
+      description: Weekend pickup at school
 ```
 
 **Time Format:**
@@ -320,11 +312,24 @@ Configure specific handoff times and guardians for any weekday:
 
 **Time Examples:**
 
-```json
-{"hour": 13, "minute": 0}              // 1:00 PM (or 1PM)
-{"hour": 15, "minute": 30}             // 3:30 PM
-{"hour": 18, "minute": 0, "use_24h": true}  // 18:00
-{"hour": 13, "minute": 0, "by": true}  // by 1:00 PM
+```yaml
+time:
+  hour: 13
+  minute: 0                    # 1:00 PM (or 1PM)
+
+time:
+  hour: 15
+  minute: 30                   # 3:30 PM
+
+time:
+  hour: 18
+  minute: 0
+  use_24h: true                # 18:00
+
+time:
+  hour: 13
+  minute: 0
+  by: true                     # by 1:00 PM
 ```
 
 **Special handoff rules apply when:**
@@ -337,50 +342,42 @@ Configure specific handoff times and guardians for any weekday:
 
 Simple default handoff location:
 
-```json
-"handoff": {
-  "default_location": "school"
-}
+```yaml
+handoff:
+  default_location: school
 ```
 
 Multiple special handoffs:
 
-```json
-"handoff": {
-  "default_location": "school",
-  "special_handoffs": {
-    "monday": {
-      "from_guardian": "guardian_2",
-      "to_guardian": "guardian_1",
-      "time": {
-        "hour": 18,
-        "minute": 0
-      },
-      "description": "Guardian 2 drops off at Guardian 1's house"
-    },
-    "thursday": {
-      "from_guardian": "guardian_1",
-      "to_guardian": "guardian_2",
-      "time": {
-        "hour": 17,
-        "minute": 0
-      }
-    }
-  }
-}
+```yaml
+handoff:
+  default_location: school
+  special_handoffs:
+    monday:
+      from_guardian: guardian_2
+      to_guardian: guardian_1
+      time:
+        hour: 18
+        minute: 0
+      description: Guardian 2 drops off at Guardian 1's house
+    thursday:
+      from_guardian: guardian_1
+      to_guardian: guardian_2
+      time:
+        hour: 17
+        minute: 0
 ```
 
 ### Visualization Colors
 
 Customize PNG calendar colors using any of the **147 CSS3 color names** or hex strings:
 
-```json
-"visualization": {
-  "guardian_1": "coral",
-  "guardian_2": "steelblue",
-  "holiday": "gold",
-  "unknown": "lightgray"
-}
+```yaml
+visualization:
+  guardian_1: coral
+  guardian_2: steelblue
+  holiday: gold
+  unknown: lightgray
 ```
 
 **All CSS3 Color Names Supported:**
@@ -421,11 +418,48 @@ You can also use hex strings: `"#FF1493"`, `"#81C995"`, etc.
 
 Requires **Python 3.13+** (supports up to Python 3.14).
 
+### For Users
+
+Install from PyPI:
+
 ```bash
+pip install family-schedulekit
+```
+
+Or with [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv add family-schedulekit
+```
+
+### For Development
+
+Clone the repository and install with dev dependencies:
+
+```bash
+git clone https://github.com/weekendsuperhero/family-schedulekit
+cd family-schedulekit
 uv sync --extra dev
 ```
 
 > `uv sync --extra dev` installs runtime dependencies along with ruff, pytest, mypy, Pillow, and argcomplete.
+
+---
+
+## ⚡ Quick Start
+
+```bash
+# 1. Create a schedule configuration
+family-schedulekit init --guardian-1 "Parent A" --guardian-2 "Parent B" --child "Child Name"
+
+# 2. Check who has custody today
+family-schedulekit resolve $(date +%Y-%m-%d)
+
+# 3. Export a visual calendar
+family-schedulekit export --weeks 4 --formats png
+```
+
+See your schedule at `schedule_YYYY-MM-DD.png`!
 
 ---
 
@@ -505,24 +539,37 @@ The workspace `uv.lock` should be committed so collaborators resolve the exact v
 
 Auto-complete subcommands and options using [`argcomplete`](https://github.com/kislyuk/argcomplete):
 
+**Bash:**
+
 ```bash
 # Enable once per shell session
 eval "$(register-python-argcomplete family-schedulekit)"
 
-# Or install permanently (Bash)
+# Or install permanently
 register-python-argcomplete family-schedulekit >> ~/.bash_completion
+source ~/.bash_completion
 ```
 
-For `zsh`, add the following to your `~/.zshrc` (once):
+**Zsh:**
 
-```bash
+```zsh
+# Add to ~/.zshrc
 autoload -U bashcompinit && bashcompinit
 eval "$(register-python-argcomplete family-schedulekit)"
+
+# Reload your shell
+source ~/.zshrc
 ```
 
-Reload your shell (`source ~/.zshrc`) and completions will be available.
+**Fish:**
 
-Fish users can leverage `argcomplete`'s `register-python-argcomplete --shell fish` to generate functions.
+```fish
+# Generate and save completions
+register-python-argcomplete --shell fish family-schedulekit > ~/.config/fish/completions/family-schedulekit.fish
+
+# Reload completions
+source ~/.config/fish/completions/family-schedulekit.fish
+```
 
 ### Python API
 
@@ -615,6 +662,60 @@ The AI context includes everything needed for LLMs to:
 - Plan activities considering handoff times
 - Resolve scheduling conflicts
 - Generate calendar entries
+
+---
+
+## 🔍 Troubleshooting
+
+### "Module not found" error
+
+Make sure you installed with `pip install family-schedulekit` not just cloning the repo.
+
+### PNG export not working
+
+Pillow is required and should install automatically. If not:
+
+```bash
+pip install Pillow
+```
+
+### Shell completions not working
+
+**Bash:**
+
+```bash
+# Add to ~/.bashrc or ~/.bash_profile
+eval "$(register-python-argcomplete family-schedulekit)"
+source ~/.bashrc
+```
+
+**Zsh:**
+
+```zsh
+# Add to ~/.zshrc
+autoload -U bashcompinit && bashcompinit
+eval "$(register-python-argcomplete family-schedulekit)"
+source ~/.zshrc
+```
+
+**Fish:**
+
+```fish
+# Generate completions file
+register-python-argcomplete --shell fish family-schedulekit > ~/.config/fish/completions/family-schedulekit.fish
+```
+
+### Config file not found
+
+The default config location is `~/.config/family-schedulekit/schedule.yaml`. Create it with:
+
+```bash
+family-schedulekit init --guardian-1 "Parent A" --guardian-2 "Parent B" --child "Child Name"
+```
+
+### Need help?
+
+Open an issue: https://github.com/weekendsuperhero/family-schedulekit/issues
 
 ---
 
