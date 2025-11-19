@@ -436,23 +436,25 @@ uv sync --extra dev
 The CLI uses a configuration file to store your schedule settings. By default, configs are stored in:
 
 ```
-~/.config/family-schedulekit/schedule.json
+~/.config/family-schedulekit/schedule.yaml
 ```
 
 This follows the [XDG Base Directory specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html) for user configuration files.
+
+**Format Support**: The tool supports both YAML (`.yaml`, `.yml`) and JSON (`.json`) formats. YAML is recommended for better readability, but JSON is fully supported for backward compatibility.
 
 **Config Versioning**: All config files include a `version` field (currently `1.0.0`) to track schema changes and ensure compatibility as the project evolves.
 
 ### CLI Commands
 
 ```bash
-# Generate a new schedule configuration (saves to ~/.config/family-schedulekit/schedule.json)
+# Generate a new schedule configuration (saves to ~/.config/family-schedulekit/schedule.yaml)
 family-schedulekit init --guardian-1 ParentA --guardian-2 ParentB --child Child1 --child Child2
 
-# Or specify a custom location
-family-schedulekit init --guardian-1 ParentA --guardian-2 ParentB --child Child1 --child Child2 -o path/to/config.json
+# Or specify a custom location (supports .yaml, .yml, or .json)
+family-schedulekit init --guardian-1 ParentA --guardian-2 ParentB --child Child1 --child Child2 -o path/to/config.yaml
 
-# Resolve a specific date (uses ~/.config/family-schedulekit/schedule.json by default)
+# Resolve a specific date (uses ~/.config/family-schedulekit/schedule.yaml by default)
 family-schedulekit resolve 2025-02-23
 
 # Resolve an entire week
@@ -470,8 +472,8 @@ family-schedulekit export --weeks 6 --formats json png
 # Or specify a custom start date
 family-schedulekit export --start 2025-02-03 --weeks 6 --formats json png
 
-# Use a different config file
-family-schedulekit export --config path/to/config.json --weeks 6 --formats png
+# Use a different config file (supports .yaml, .yml, or .json)
+family-schedulekit export --config path/to/config.yaml --weeks 6 --formats png
 ```
 
 > ℹ️ PNG export requires Pillow, which is included with the base install.

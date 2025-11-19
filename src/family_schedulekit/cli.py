@@ -5,6 +5,8 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import yaml
+
 try:  # pragma: no cover - optional dependency handled at runtime
     import argcomplete
 except ImportError:  # pragma: no cover
@@ -109,6 +111,45 @@ def _cmd_list_colors(sp):
     list_all_colors()
 
 
+def _cmd_convert(sp):
+    """Convert a config file from JSON to YAML or vice versa."""
+    input_path = Path(sp.input)
+    if not input_path.exists():
+        raise SystemExit(f"Input file not found: {input_path}")
+
+    # Determine output path
+    if sp.output:
+        output_path = Path(sp.output)
+    else:
+        # Auto-determine output filename based on conversion direction
+        if input_path.suffix == ".json":
+            output_path = input_path.with_suffix(".yaml")
+        else:
+            output_path = input_path.with_suffix(".json")
+
+    # Check if output exists
+    if output_path.exists() and not sp.force:
+        raise SystemExit(f"Output file already exists: {output_path}\nUse -f/--force to overwrite")
+
+    # Load config
+    content = input_path.read_text()
+    if input_path.suffix in (".yaml", ".yml"):
+        data = yaml.safe_load(content)
+        cfg = ScheduleConfigModel.model_validate(data)
+    else:
+        cfg = ScheduleConfigModel.model_validate_json(content)
+
+    # Write in new format
+    data = cfg.model_dump(mode="json")
+    if output_path.suffix in (".yaml", ".yml"):
+        output_content = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True, width=120, indent=2)
+    else:
+        output_content = json.dumps(data, indent=2)
+
+    output_path.write_text(output_content, encoding="utf-8")
+    print(f"Converted {input_path} → {output_path}")
+
+
 def _get_most_recent_monday():
     """Get the most recent Monday (including today if today is Monday)."""
     today = datetime.now().date()
@@ -122,20 +163,32 @@ def _load_config(config_arg: str | None) -> ScheduleConfigModel:
     """
     Load config from specified path, default location, or packaged example.
 
+    Supports both YAML (.yaml, .yml) and JSON (.json) formats.
+
     Priority:
     1. Specified config path (if provided and exists)
-    2. Default user config (~/.config/family-schedulekit/schedule.json)
+    2. Default user config (~/.config/family-schedulekit/schedule.yaml or schedule.json)
     3. Packaged example config
     """
+
+    def _load_config_file(path: Path) -> ScheduleConfigModel:
+        """Load config from file, detecting format by extension."""
+        content = path.read_text()
+        if path.suffix in (".yaml", ".yml"):
+            data = yaml.safe_load(content)
+            return ScheduleConfigModel.model_validate(data)
+        else:
+            return ScheduleConfigModel.model_validate_json(content)
+
     if config_arg:
         cfg_path = Path(config_arg)
         if cfg_path.exists():
-            return ScheduleConfigModel.model_validate_json(cfg_path.read_text())
+            return _load_config_file(cfg_path)
 
     # Try default user config location
     if config_exists():
         default_path = get_config_path()
-        return ScheduleConfigModel.model_validate_json(default_path.read_text())
+        return _load_config_file(default_path)
 
     # Fall back to packaged default
     return load_default_config()
@@ -208,6 +261,12 @@ def main():
 
     ap_colors = sub.add_parser("list-colors", help="Show all available CSS3 color names with terminal preview")
     ap_colors.set_defaults(func=_cmd_list_colors)
+
+    ap_convert = sub.add_parser("convert", help="Convert config file between JSON and YAML formats")
+    ap_convert.add_argument("input", help="Input config file (.json, .yaml, or .yml)")
+    ap_convert.add_argument("-o", "--output", help="Output file (default: auto-detect based on input)")
+    ap_convert.add_argument("-f", "--force", action="store_true", help="Overwrite output file if it exists")
+    ap_convert.set_defaults(func=_cmd_convert)
 
     ap_exp = sub.add_parser("export", help="Export AI-ready files over a date range")
     ap_exp.add_argument(
