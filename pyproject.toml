@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.25"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
@@ -8,81 +8,25 @@ version = "1.2.0"
 description = "AI-friendly schema + utilities for co-parenting / custody schedules (ISO week based)."
 readme = "README.md"
 requires-python = ">=3.13"
-authors = [{ name = "Weekend Superhero LLC" }]
-license = { text = "MIT" }
-keywords = ["custody", "co-parenting", "schedule", "iso8601", "calendar", "ai"]
+license = {text = "BSD-3-Clause"}
 dependencies = [
-  "pydantic>=2.7,<3.0",
-  "Pillow>=10.3",
-  "argcomplete>=3.2",
-  "webcolors>=24.6.0",
-  "pyyaml>=6.0",
-]
-
-classifiers = [
-  "Development Status :: 3 - Alpha",
-  "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: 3.14",
-  "Topic :: Utilities",
-  "Typing :: Typed"
-]
-
-[project.urls]
-Homepage = "https://github.com/weekendsuperhero/family-schedulekit"
-Repository = "https://github.com/weekendsuperhero/family-schedulekit"
-Issues = "https://github.com/weekendsuperhero/family-schedulekit/issues"
-
-[project.scripts]
-family-schedulekit = "family_schedulekit.cli:main"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/family_schedulekit"]
-
-[tool.hatch.build]
-include = [
-  "README.md",
-  "LICENSE",
-  "schema/**",
-  "examples/**",
-  "src/**",
-  "tests/**",
-  "pyproject.toml"
+    "argcomplete",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "ruff>=0.5.0",
-  "pytest>=8.2",
-  "mypy>=1.10",
-  "build>=1.2.1"
+    "pytest",
+    "mypy",
+    "ruff",
 ]
 
-[tool.ruff]
-line-length = 160
-target-version = "py314"
-lint.select = ["E", "F", "W", "I", "UP"]
-lint.ignore = ["E203"]
+[project.scripts]
+family-schedulekit = "family_schedulekit.cli:main"
 
-[tool.mypy]
-python_version = "3.14"
-warn_unused_ignores = true
-warn_redundant_casts = true
-warn_unused_configs = true
-strict = false
+[project.urls]
+Homepage = "https://github.com/WeekendSuperhero/family-schedulekit"
+Repository = "https://github.com/WeekendSuperhero/family-schedulekit"
+"Bug Tracker" = "https://github.com/WeekendSuperhero/family-schedulekit/issues"
 
-[[tool.mypy.overrides]]
-module = "webcolors"
-ignore_missing_imports = true
-
-[tool.pytest.ini_options]
-addopts = "-q"
-pythonpath = ["src"]
-
-[dependency-groups]
-dev = [
-    "types-pyyaml>=6.0.12.20250915",
-]
+[tool.hatch.build.targets.wheel]
+packages = ["src/family_schedulekit"]
