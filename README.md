@@ -22,7 +22,7 @@ You can reuse this schema for any co-parenting arrangement by changing the `part
 
 Here's what a 8-week schedule visualization looks like:
 
-![Sample Schedule Calendar](examples/images/sample-schedule.png)
+![Sample Schedule Calendar](https://raw.githubusercontent.com/weekendsuperhero/family-schedulekit/main/examples/images/sample-schedule.png)
 
 The calendar color-codes each day by guardian (hot pink for Mom, midnight blue for Dad), making it easy to see custody patterns at a glance. You can export schedules in multiple formats (JSON, PNG) and customize colors to match your preferences.
 
@@ -620,4 +620,55 @@ The AI context includes everything needed for LLMs to:
 
 ## 📝 License
 
-MIT License © 2025 Weekend Superhero LLC. See [LICENSE](LICENSE) for details.
+**Dual Licensed:** This project is available under two licenses:
+
+- **PolyForm Noncommercial 1.0.0** (free) for personal, educational, and non-commercial use with attribution
+- **Commercial License** (paid) for business and commercial use
+
+### Which license do I need?
+
+**Non-Commercial (FREE with Attribution):**
+
+- Individual personal use ✓
+- Educational purposes ✓
+- Non-profit organizations ✓
+- Academic research ✓
+- Open-source projects (non-commercial) ✓
+- **Requires:** Preserve copyright notice and license terms
+
+**Commercial (PAID LICENSE REQUIRED):**
+
+- Business or enterprise use
+- Commercial products or services
+- Revenue-generating applications
+- For-profit organizations
+- Internal business operations
+
+### Get a Commercial License
+
+For commercial licensing inquiries:
+
+- **Email:** weekend@weekendsuperhero.io
+- **Web:** https://weekendsuperhero.io/family-schedulekit/licensing
+- **30-day free trials available!**
+
+### Learn More
+
+See [LICENSING.md](LICENSING.md) for detailed information about:
+
+- License comparison and FAQ
+- Commercial pricing tiers (starting at $499/year)
+- How to obtain a commercial license
+- Compliance requirements
+
+**Quick links:**
+
+- [LICENSE](LICENSE) - Main license overview
+- [LICENSE-NONCOMMERCIAL](LICENSE-NONCOMMERCIAL) - PolyForm Noncommercial 1.0.0 terms
+- [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL) - Commercial license info
+
+---
+
+**Required Notice:** Copyright (c) 2025 Weekend Superhero LLC (https://weekendsuperhero.io)
+
+© 2025 Weekend Superhero LLC. All rights reserved.

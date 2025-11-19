@@ -1,29 +1,88 @@
-BSD 3-Clause License
+# DUAL LICENSE
 
-Copyright (c) 2025 Mark Blake (WeekendSuperhero LLC)
-All rights reserved.
+**family-schedulekit**
+Copyright (c) 2025 Weekend Superhero LLC
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+This software is available under a dual licensing model:
 
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
+## 1. PolyForm Noncommercial 1.0.0 (Free for Non-Commercial Use)
 
-2. Redistributions in binary form must reproduce the above copyright
-   notice, this list of conditions and the following disclaimer in the
-   documentation and/or other materials provided with the distribution.
+For personal, educational, research, and non-profit use.
 
-3. Neither the name of the copyright holder nor the names of its
-   contributors may be used to endorse or promote products derived from
-   this software without specific prior written permission.
+→ See [LICENSE-NONCOMMERCIAL](LICENSE-NONCOMMERCIAL) for full terms
+→ Read online: https://polyformproject.org/licenses/noncommercial/1.0.0
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+**Includes attribution requirement** - You must preserve copyright notices and license terms when distributing.
+
+## 2. Commercial License (Paid for Commercial Use)
+
+For businesses, commercial products, and revenue-generating applications.
+
+→ See [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL) for full terms
+→ Get a license: weekend@weekendsuperhero.io
+
+---
+
+## Which License Do I Need?
+
+### ✓ Use PolyForm Noncommercial (FREE)
+
+- Individual personal/family use
+- Educational purposes and teaching
+- Academic research and study
+- Non-profit organizations (501(c)(3) or equivalent)
+- Government institutions
+- Hobby and personal projects
+- Open-source projects (non-commercial)
+
+**No registration required** - just include proper attribution!
+
+### ✓ Use Commercial License (PAID)
+
+- For-profit businesses and corporations
+- Commercial products or SaaS applications
+- Professional services to clients
+- Internal business use at for-profit companies
+- Revenue-generating applications
+- Commercial redistribution or embedding
+
+**Contact us:** weekend@weekendsuperhero.io
+
+---
+
+## Frequently Asked Questions
+
+### Q: I'm an individual using this for my family. Which license?
+**A:** PolyForm Noncommercial (free) - just preserve the copyright notice!
+
+### Q: My company wants to use this internally. Which license?
+**A:** Commercial License (paid) - contact us for pricing.
+
+### Q: I'm building a free open-source scheduling app. Which license?
+**A:** If truly non-commercial: PolyForm Noncommercial. If monetized: Commercial License.
+
+### Q: Can I evaluate before purchasing?
+**A:** Yes! We offer 30-day evaluation licenses. Email weekend@weekendsuperhero.io
+
+### Q: What's the attribution requirement?
+**A:** You must include the copyright notice and license terms when you distribute the software:
+```
+Required Notice: Copyright (c) 2025 Weekend Superhero LLC (https://weekendsuperhero.io)
+```
+
+### Q: Still not sure which license?
+**A:** Email weekend@weekendsuperhero.io - we're happy to help!
+
+---
+
+## More Information
+
+- **Detailed Licensing Guide:** [LICENSING.md](LICENSING.md)
+- **Non-Commercial Terms:** [LICENSE-NONCOMMERCIAL](LICENSE-NONCOMMERCIAL)
+- **Commercial Terms:** [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL)
+- **Contact:** weekend@weekendsuperhero.io
+- **Website:** https://weekendsuperhero.io/family-schedulekit
+
+---
+
+**© 2025 Weekend Superhero LLC. All rights reserved.**
