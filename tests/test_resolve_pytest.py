@@ -11,25 +11,25 @@ def test_iso_week_known():
 
 
 def test_weekday_assignments():
-    res = resolve_for_date(date(2025, 2, 3), CFG)  # Monday CW6
-    assert res["guardian"] == "guardian_1" and res["handoff"] == "school"
-    res = resolve_for_date(date(2025, 2, 4), CFG)  # Tuesday CW6
+    res = resolve_for_date(date(2025, 2, 3), CFG)  # Monday CW6 (even week)
     assert res["guardian"] == "guardian_2" and res["handoff"] == "school"
+    res = resolve_for_date(date(2025, 2, 4), CFG)  # Tuesday CW6 (even week)
+    assert res["guardian"] == "guardian_1" and res["handoff"] == "school"
 
 
 def test_weekend_even_cw6():
-    res = resolve_for_date(date(2025, 2, 7), CFG)  # Friday CW6 (guardian_2 has Thu & Fri, no change)
+    res = resolve_for_date(date(2025, 2, 7), CFG)  # Friday CW6 (even week, Thu is guardian_1, Fri is guardian_2)
+    assert res["guardian"] == "guardian_2" and res["handoff"] == "school"
+    res = resolve_for_date(date(2025, 2, 8), CFG)  # Saturday CW6 (even week)
     assert res["guardian"] == "guardian_2" and res["handoff"] is None
-    res = resolve_for_date(date(2025, 2, 8), CFG)  # Saturday CW6
-    assert res["guardian"] == "guardian_2" and res["handoff"] is None
-    res = resolve_for_date(date(2025, 2, 9), CFG)  # Sunday CW6
-    assert res["guardian"] == "guardian_1" and res["handoff"] is None
+    res = resolve_for_date(date(2025, 2, 9), CFG)  # Sunday CW6 (even week, CW6%4==2, so otherwise applies)
+    assert res["guardian"] == "guardian_1" and res["handoff"] == "school"
 
 
 def test_weekend_even_cw8_sunday_exception():
-    res = resolve_for_date(date(2025, 2, 21), CFG)  # Friday CW8 (guardian_2 has Thu & Fri, no change)
-    assert res["guardian"] == "guardian_2" and res["handoff"] is None
-    res = resolve_for_date(date(2025, 2, 23), CFG)  # Sunday CW8
+    res = resolve_for_date(date(2025, 2, 21), CFG)  # Friday CW8 (even week, Thu is guardian_1, Fri is guardian_2)
+    assert res["guardian"] == "guardian_2" and res["handoff"] == "school"
+    res = resolve_for_date(date(2025, 2, 23), CFG)  # Sunday CW8 (even week, CW8%4==0, so modulo rule applies)
     assert res["guardian"] == "guardian_2" and res["handoff"] == "guardian_2_to_guardian_1_by_1pm"
 
 
