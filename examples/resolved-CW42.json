@@ -3,32 +3,32 @@
   "calendar_week_system": "ISO8601",
   "resolved_schedule": {
     "monday": {
-      "guardian": "mom",
+      "guardian": "guardian_2",
       "handoff": "school"
     },
     "tuesday": {
-      "guardian": "dad",
+      "guardian": "guardian_1",
       "handoff": "school"
     },
     "wednesday": {
-      "guardian": "mom",
+      "guardian": "guardian_2",
       "handoff": "school"
     },
     "thursday": {
-      "guardian": "dad",
+      "guardian": "guardian_1",
       "handoff": "school"
     },
     "friday": {
-      "guardian": "dad",
-      "handoff": null
+      "guardian": "guardian_2",
+      "handoff": "school"
     },
     "saturday": {
-      "guardian": "dad",
+      "guardian": "guardian_2",
       "handoff": null
     },
     "sunday": {
-      "guardian": "dad",
-      "handoff": null
+      "guardian": "guardian_1",
+      "handoff": "school"
     }
   }
 }

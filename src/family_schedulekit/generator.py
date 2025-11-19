@@ -10,8 +10,8 @@ from .resources import load_template
 
 @dataclass(slots=True)
 class InitParams:
-    mom: str
-    dad: str
+    guardian_1: str
+    guardian_2: str
     children: list[str]
     template: str = "generic"
     outfile: Path = Path("schema/my-schedule.json")
@@ -20,7 +20,7 @@ class InitParams:
 
 def generate_config(params: InitParams) -> str:
     base = load_template(params.template).model_dump(mode="json")
-    base["parties"] = {"mom": params.mom, "dad": params.dad, "children": params.children}
+    base["parties"] = {"guardian_1": params.guardian_1, "guardian_2": params.guardian_2, "children": params.children}
     cfg = ScheduleConfigModel.model_validate(base)
     return json.dumps(cfg.model_dump(mode="json"), indent=2)
 

@@ -9,13 +9,6 @@ def iso_week(dt: date) -> int:
     return dt.isocalendar().week
 
 
-def _get_weekday_handoff(cfg: ScheduleConfigModel) -> str:
-    """Get the weekday handoff location/description."""
-    if isinstance(cfg.handoff.weekdays, str):
-        return cfg.handoff.weekdays
-    return cfg.handoff.weekdays.location
-
-
 def resolve_weekday_rule(rule: Guardian | WeekdayRule, cw: int) -> Guardian:
     """Resolve a weekday rule to a guardian based on calendar week.
 
@@ -79,34 +72,21 @@ def resolve_for_date(dt: date, cfg: ScheduleConfigModel, _check_handoff: bool = 
             "swap_note": None,
         }
 
-    guardian: Guardian
-    match day:
-        case Weekday.MONDAY | Weekday.TUESDAY | Weekday.WEDNESDAY | Weekday.THURSDAY:
-            guardian = getattr(cfg.rules.weekdays, day.value)
-            handoff = _get_weekday_handoff(cfg)
-        case Weekday.FRIDAY:
-            if cw % 2 == 1:
-                guardian = cfg.rules.weekends.odd_weeks.friday
-            else:
-                guardian = resolve_weekday_rule(cfg.rules.weekends.even_weeks.friday, cw)
+    # Determine which week rules to use based on odd/even calendar week
+    if cw % 2 == 1:
+        week_rules = cfg.rules.odd_weeks
+    else:
+        week_rules = cfg.rules.even_weeks
 
-            # Only set "after_school" handoff if there's a custody change from Thursday
-            yesterday = dt - timedelta(days=1)
-            yesterday_result = resolve_for_date(yesterday, cfg, _check_handoff=False)
-            if yesterday_result["guardian"] != guardian:
-                handoff = "after_school"
-        case Weekday.SATURDAY:
-            if cw % 2 == 1:
-                guardian = cfg.rules.weekends.odd_weeks.saturday
-            else:
-                guardian = resolve_weekday_rule(cfg.rules.weekends.even_weeks.saturday, cw)
-        case Weekday.SUNDAY:
-            if cw % 2 == 1:
-                guardian = cfg.rules.weekends.odd_weeks.sunday
-            else:
-                guardian = resolve_weekday_rule(cfg.rules.weekends.even_weeks.sunday, cw)
-        case _:
-            raise AssertionError(f"Unhandled weekday: {day!r}")
+    # Get the guardian for this specific day
+    guardian = resolve_weekday_rule(getattr(week_rules, day.value), cw)
+
+    # Check if there's a custody change from the previous day
+    if _check_handoff:
+        yesterday = dt - timedelta(days=1)
+        yesterday_result = resolve_for_date(yesterday, cfg, _check_handoff=False)
+        if yesterday_result["guardian"] != guardian:
+            handoff = cfg.handoff.default_location
 
     # Apply special handoff rules if configured for this weekday
     # Special handoffs only apply when there's a custody change from one guardian to another

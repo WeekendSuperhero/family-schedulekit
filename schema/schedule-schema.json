@@ -13,13 +13,13 @@
       "type": "object",
       "description": "The people involved in the custody schedule",
       "properties": {
-        "mom": {
+        "guardian_1": {
           "type": "string",
-          "description": "Name or identifier for primary caregiver"
+          "description": "Name or identifier for first guardian"
         },
-        "dad": {
+        "guardian_2": {
           "type": "string",
-          "description": "Name or identifier for secondary caregiver"
+          "description": "Name or identifier for second guardian"
         },
         "children": {
           "type": "array",
@@ -27,7 +27,7 @@
           "description": "List of children's names"
         }
       },
-      "required": ["mom", "dad", "children"]
+      "required": ["guardian_1", "guardian_2", "children"]
     },
     "calendar_week_system": {
       "type": "string",
@@ -38,30 +38,11 @@
       "type": "object",
       "description": "Handoff logistics and timing rules",
       "properties": {
-        "weekdays": {
-          "oneOf": [
-            {
-              "type": "string",
-              "description": "Simple location string (e.g., 'school')",
-              "examples": ["school", "daycare"]
-            },
-            {
-              "type": "object",
-              "description": "Detailed weekday handoff configuration",
-              "properties": {
-                "location": {
-                  "type": "string",
-                  "description": "Where weekday handoffs occur",
-                  "default": "school"
-                },
-                "time": {
-                  "type": "string",
-                  "description": "Specific time if needed (e.g., '3pm', '15:00')"
-                }
-              },
-              "required": ["location"]
-            }
-          ]
+        "default_location": {
+          "type": "string",
+          "description": "Default location/description for handoffs when custody changes",
+          "default": "school",
+          "examples": ["school", "daycare", "after school program"]
         },
         "special_handoffs": {
           "type": "object",
@@ -72,12 +53,12 @@
             "properties": {
               "from_guardian": {
                 "type": "string",
-                "enum": ["mom", "dad"],
+                "enum": ["guardian_1", "guardian_2"],
                 "description": "Guardian handing off custody"
               },
               "to_guardian": {
                 "type": "string",
-                "enum": ["mom", "dad"],
+                "enum": ["guardian_1", "guardian_2"],
                 "description": "Guardian receiving custody"
               },
               "time": {
@@ -124,195 +105,135 @@
           },
           "default": {}
         }
-      },
-      "required": ["weekdays"]
+      }
     },
     "rules": {
       "type": "object",
-      "description": "Custody rules for weekdays and weekends",
+      "description": "Custody rules based on odd/even ISO calendar weeks",
       "properties": {
-        "weekdays": {
+        "odd_weeks": {
           "type": "object",
-          "description": "Monday through Thursday custody assignments",
+          "description": "Rules for all days in odd calendar weeks (CW1, CW3, CW5...)",
           "properties": {
-            "monday": { "type": "string", "enum": ["mom", "dad"] },
-            "tuesday": { "type": "string", "enum": ["mom", "dad"] },
-            "wednesday": { "type": "string", "enum": ["mom", "dad"] },
-            "thursday": { "type": "string", "enum": ["mom", "dad"] }
-          },
-          "required": ["monday", "tuesday", "wednesday", "thursday"]
-        },
-        "weekends": {
-          "type": "object",
-          "description": "Weekend custody rules based on odd/even ISO calendar weeks",
-          "properties": {
-            "odd_weeks": {
-              "type": "object",
-              "description": "Rules for odd calendar weeks (CW1, CW3, CW5...)",
-              "properties": {
-                "friday": { "type": "string", "enum": ["mom", "dad"] },
-                "saturday": { "type": "string", "enum": ["mom", "dad"] },
-                "sunday": { "type": "string", "enum": ["mom", "dad"] }
-              },
-              "required": ["friday", "saturday", "sunday"]
+            "monday": {
+              "oneOf": [
+                { "type": "string", "enum": ["guardian_1", "guardian_2"] },
+                { "$ref": "#/definitions/weekday_rule" }
+              ]
             },
-            "even_weeks": {
-              "type": "object",
-              "description": "Rules for even calendar weeks (CW2, CW4, CW6...) - supports modulo rules",
-              "properties": {
-                "friday": {
-                  "oneOf": [
-                    {
-                      "type": "string",
-                      "enum": ["mom", "dad"],
-                      "description": "Simple guardian assignment"
-                    },
-                    {
-                      "type": "object",
-                      "description": "Flexible modulo-based rule",
-                      "properties": {
-                        "modulo_rules": {
-                          "type": "array",
-                          "description": "List of modulo conditions evaluated in order",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "modulo": {
-                                "type": "integer",
-                                "minimum": 2,
-                                "description": "Divisor for modulo operation (CW % modulo)"
-                              },
-                              "remainder": {
-                                "type": "integer",
-                                "minimum": 0,
-                                "description": "Target remainder value (must be < modulo)"
-                              },
-                              "guardian": {
-                                "type": "string",
-                                "enum": ["mom", "dad"],
-                                "description": "Guardian when this rule matches"
-                              }
-                            },
-                            "required": ["modulo", "remainder", "guardian"]
-                          }
-                        },
-                        "otherwise": {
-                          "type": "string",
-                          "enum": ["mom", "dad"],
-                          "description": "Fallback guardian when no modulo rules match"
-                        }
-                      },
-                      "required": ["modulo_rules", "otherwise"]
-                    }
-                  ]
-                },
-                "saturday": {
-                  "oneOf": [
-                    {
-                      "type": "string",
-                      "enum": ["mom", "dad"],
-                      "description": "Simple guardian assignment"
-                    },
-                    {
-                      "type": "object",
-                      "description": "Flexible modulo-based rule",
-                      "properties": {
-                        "modulo_rules": {
-                          "type": "array",
-                          "description": "List of modulo conditions evaluated in order",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "modulo": {
-                                "type": "integer",
-                                "minimum": 2,
-                                "description": "Divisor for modulo operation (CW % modulo)"
-                              },
-                              "remainder": {
-                                "type": "integer",
-                                "minimum": 0,
-                                "description": "Target remainder value (must be < modulo)"
-                              },
-                              "guardian": {
-                                "type": "string",
-                                "enum": ["mom", "dad"],
-                                "description": "Guardian when this rule matches"
-                              }
-                            },
-                            "required": ["modulo", "remainder", "guardian"]
-                          }
-                        },
-                        "otherwise": {
-                          "type": "string",
-                          "enum": ["mom", "dad"],
-                          "description": "Fallback guardian when no modulo rules match"
-                        }
-                      },
-                      "required": ["modulo_rules", "otherwise"]
-                    }
-                  ]
-                },
-                "sunday": {
-                  "oneOf": [
-                    {
-                      "type": "string",
-                      "enum": ["mom", "dad"],
-                      "description": "Simple guardian assignment"
-                    },
-                    {
-                      "type": "object",
-                      "description": "Flexible modulo-based rule",
-                      "properties": {
-                        "modulo_rules": {
-                          "type": "array",
-                          "description": "List of modulo conditions evaluated in order",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "modulo": {
-                                "type": "integer",
-                                "minimum": 2,
-                                "description": "Divisor for modulo operation (CW % modulo)"
-                              },
-                              "remainder": {
-                                "type": "integer",
-                                "minimum": 0,
-                                "description": "Target remainder value (must be < modulo)"
-                              },
-                              "guardian": {
-                                "type": "string",
-                                "enum": ["mom", "dad"],
-                                "description": "Guardian when this rule matches"
-                              }
-                            },
-                            "required": ["modulo", "remainder", "guardian"]
-                          }
-                        },
-                        "otherwise": {
-                          "type": "string",
-                          "enum": ["mom", "dad"],
-                          "description": "Fallback guardian when no modulo rules match"
-                        }
-                      },
-                      "required": ["modulo_rules", "otherwise"]
-                    }
-                  ]
-                }
-              },
-              "required": ["friday", "saturday", "sunday"]
+            "tuesday": {
+              "oneOf": [
+                { "type": "string", "enum": ["guardian_1", "guardian_2"] },
+                { "$ref": "#/definitions/weekday_rule" }
+              ]
+            },
+            "wednesday": {
+              "oneOf": [
+                { "type": "string", "enum": ["guardian_1", "guardian_2"] },
+                { "$ref": "#/definitions/weekday_rule" }
+              ]
+            },
+            "thursday": {
+              "oneOf": [
+                { "type": "string", "enum": ["guardian_1", "guardian_2"] },
+                { "$ref": "#/definitions/weekday_rule" }
+              ]
+            },
+            "friday": {
+              "oneOf": [
+                { "type": "string", "enum": ["guardian_1", "guardian_2"] },
+                { "$ref": "#/definitions/weekday_rule" }
+              ]
+            },
+            "saturday": {
+              "oneOf": [
+                { "type": "string", "enum": ["guardian_1", "guardian_2"] },
+                { "$ref": "#/definitions/weekday_rule" }
+              ]
+            },
+            "sunday": {
+              "oneOf": [
+                { "type": "string", "enum": ["guardian_1", "guardian_2"] },
+                { "$ref": "#/definitions/weekday_rule" }
+              ]
             }
           },
-          "required": ["odd_weeks", "even_weeks"]
+          "required": [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday"
+          ]
+        },
+        "even_weeks": {
+          "type": "object",
+          "description": "Rules for all days in even calendar weeks (CW2, CW4, CW6...)",
+          "properties": {
+            "monday": {
+              "oneOf": [
+                { "type": "string", "enum": ["guardian_1", "guardian_2"] },
+                { "$ref": "#/definitions/weekday_rule" }
+              ]
+            },
+            "tuesday": {
+              "oneOf": [
+                { "type": "string", "enum": ["guardian_1", "guardian_2"] },
+                { "$ref": "#/definitions/weekday_rule" }
+              ]
+            },
+            "wednesday": {
+              "oneOf": [
+                { "type": "string", "enum": ["guardian_1", "guardian_2"] },
+                { "$ref": "#/definitions/weekday_rule" }
+              ]
+            },
+            "thursday": {
+              "oneOf": [
+                { "type": "string", "enum": ["guardian_1", "guardian_2"] },
+                { "$ref": "#/definitions/weekday_rule" }
+              ]
+            },
+            "friday": {
+              "oneOf": [
+                { "type": "string", "enum": ["guardian_1", "guardian_2"] },
+                { "$ref": "#/definitions/weekday_rule" }
+              ]
+            },
+            "saturday": {
+              "oneOf": [
+                { "type": "string", "enum": ["guardian_1", "guardian_2"] },
+                { "$ref": "#/definitions/weekday_rule" }
+              ]
+            },
+            "sunday": {
+              "oneOf": [
+                { "type": "string", "enum": ["guardian_1", "guardian_2"] },
+                { "$ref": "#/definitions/weekday_rule" }
+              ]
+            }
+          },
+          "required": [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday"
+          ]
         }
       },
-      "required": ["weekdays", "weekends"]
+      "required": ["odd_weeks", "even_weeks"]
     },
     "holidays": {
       "type": "object",
       "description": "Date-specific overrides in YYYY-MM-DD format (DEPRECATED: use swaps instead)",
       "additionalProperties": {
         "type": "string",
-        "enum": ["mom", "dad"]
+        "enum": ["guardian_1", "guardian_2"]
       },
       "default": {}
     },
@@ -324,7 +245,7 @@
         "properties": {
           "guardian": {
             "type": "string",
-            "enum": ["mom", "dad"],
+            "enum": ["guardian_1", "guardian_2"],
             "description": "Guardian who has custody on this swapped date"
           },
           "color": {
@@ -350,15 +271,15 @@
       "type": "object",
       "description": "Color palette for PNG calendar visualizations",
       "properties": {
-        "mom": {
+        "guardian_1": {
           "type": "string",
-          "description": "Color for mom's custody days (named color or hex string)",
+          "description": "Color for guardian_1's custody days (named color or hex string)",
           "default": "hot_pink",
           "examples": ["hot_pink", "pink", "coral", "#FF1493"]
         },
-        "dad": {
+        "guardian_2": {
           "type": "string",
-          "description": "Color for dad's custody days (named color or hex string)",
+          "description": "Color for guardian_2's custody days (named color or hex string)",
           "default": "midnight_blue",
           "examples": ["midnight_blue", "blue", "dark_blue", "#191970"]
         },
@@ -389,8 +310,8 @@
         }
       },
       "default": {
-        "mom": "hot_pink",
-        "dad": "midnight_blue",
+        "guardian_1": "hot_pink",
+        "guardian_2": "midnight_blue",
         "holiday": "light_blue",
         "unknown": "gray",
         "swap_shade_percent": 20,
@@ -398,5 +319,44 @@
       }
     }
   },
-  "required": ["parties", "calendar_week_system", "handoff", "rules"]
+  "required": ["parties", "calendar_week_system", "handoff", "rules"],
+  "definitions": {
+    "weekday_rule": {
+      "type": "object",
+      "description": "Flexible modulo-based rule for complex schedule patterns",
+      "properties": {
+        "modulo_rules": {
+          "type": "array",
+          "description": "List of modulo conditions evaluated in order",
+          "items": {
+            "type": "object",
+            "properties": {
+              "modulo": {
+                "type": "integer",
+                "minimum": 2,
+                "description": "Divisor for modulo operation (CW % modulo)"
+              },
+              "remainder": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Target remainder value (must be < modulo)"
+              },
+              "guardian": {
+                "type": "string",
+                "enum": ["guardian_1", "guardian_2"],
+                "description": "Guardian when this rule matches"
+              }
+            },
+            "required": ["modulo", "remainder", "guardian"]
+          }
+        },
+        "otherwise": {
+          "type": "string",
+          "enum": ["guardian_1", "guardian_2"],
+          "description": "Fallback guardian when no modulo rules match"
+        }
+      },
+      "required": ["modulo_rules", "otherwise"]
+    }
+  }
 }
