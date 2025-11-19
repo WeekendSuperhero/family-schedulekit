@@ -83,7 +83,7 @@ def _generate_rules_summary(cfg: ScheduleConfigModel) -> dict[str, str]:
         special_sunday = "No special Sunday rules"
 
     return {
-        "odd_week_pattern": f"Odd weeks (CW1, CW3, CW5...): All 7 days follow the odd week schedule",
+        "odd_week_pattern": "Odd weeks (CW1, CW3, CW5...): All 7 days follow the odd week schedule",
         "even_week_pattern": f"Even weeks (CW2, CW4, CW6...): All 7 days follow the even week schedule, {sunday_desc}",
         "special_sunday_rule": special_sunday,
         "modulo_support": "Any day in odd or even weeks can use flexible modulo rules for complex rotation patterns",
