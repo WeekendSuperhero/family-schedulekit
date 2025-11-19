@@ -16,7 +16,7 @@ dependencies = [
   "Pillow>=10.3",
   "argcomplete>=3.2",
   "webcolors>=24.6.0",
-  "PyYAML>=6.0"
+  "pyyaml>=6.0",
 ]
 
 classifiers = [
