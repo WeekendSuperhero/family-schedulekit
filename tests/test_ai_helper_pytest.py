@@ -2,8 +2,6 @@ import json
 from datetime import date
 from pathlib import Path
 
-import pytest
-
 from family_schedulekit import load_default_config
 from family_schedulekit.ai_helper import (
     _generate_ai_instructions,

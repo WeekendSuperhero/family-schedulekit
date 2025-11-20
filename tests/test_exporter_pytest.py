@@ -4,7 +4,6 @@ from pathlib import Path
 import pytest
 from pytest import MonkeyPatch
 
-import family_schedulekit.exporter as exporter
 from family_schedulekit.exporter import (
     ExportPlan,
     _csv_lines,

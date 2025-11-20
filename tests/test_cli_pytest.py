@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-import json
 import sys
-from datetime import date
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-import yaml
 
 from family_schedulekit import cli
 

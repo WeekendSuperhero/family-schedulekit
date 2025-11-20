@@ -89,7 +89,7 @@ def test_display_color_terminal_mid_luminance():
     """Test luminance threshold with mid-gray."""
     # Gray (128,128,128): lum ~0.5, but calc (0.299*128 +0.587*128 +0.114*128)/255 ≈ 128/255=0.5 exactly? Test >0.5 black.
     rgb = (128, 128, 128)
-    lum = (0.299 * 128 + 0.587 * 128 + 0.114 * 128) / 255  # ≈0.50196 >0.5 -> black \033[30m
+    # lum = (0.299 * 128 + 0.587 * 128 + 0.114 * 128) / 255  # ≈0.50196 >0.5 -> black \033[30m
     result = display_color_terminal("gray", rgb)
     assert "\033[30m" in result  # Black text for lum>0.5
 
