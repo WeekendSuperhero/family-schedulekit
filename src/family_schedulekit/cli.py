@@ -63,7 +63,7 @@ def _cmd_resolve(sp):
         # Map guardian keys to actual names
         resolved_schedule = {}
         for k, v in week.items():
-            resolved_schedule[k] = {"guardian": _map_guardian_to_name(v["guardian"], cfg), "handoff": v["handoff"]}
+            resolved_schedule[k] = {"guardian": _map_guardian_to_name(str(v["guardian"]), cfg), "handoff": v["handoff"]}
         print(
             json.dumps(
                 {
@@ -82,7 +82,7 @@ def _cmd_resolve(sp):
             # Map guardian keys to actual names
             resolved_schedule = {}
             for k, v in week.items():
-                resolved_schedule[k] = {"guardian": _map_guardian_to_name(v["guardian"], cfg), "handoff": v["handoff"]}
+                resolved_schedule[k] = {"guardian": _map_guardian_to_name(str(v["guardian"]), cfg), "handoff": v["handoff"]}
             print(
                 json.dumps(
                     {
@@ -96,8 +96,9 @@ def _cmd_resolve(sp):
         else:
             target = datetime.strptime(sp.date, "%Y-%m-%d").date()
             result = resolve_for_date(target, cfg)
+            guardian = result["guardian"]
             # Map guardian key to actual name
-            result["guardian"] = _map_guardian_to_name(result["guardian"], cfg)
+            result["guardian"] = _map_guardian_to_name(str(guardian), cfg)
             print(json.dumps(result, indent=2))
 
 
