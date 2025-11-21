@@ -1,4 +1,5 @@
 import importlib
+import pathlib
 from pathlib import Path
 
 import pytest
@@ -8,11 +9,15 @@ import family_schedulekit.config as config_mod
 
 @pytest.fixture
 def isolated_config(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    """Patch HOME env, reload module, create config_dir, yield."""
+    """Patch pathlib.Path.home() for cross-platform isolation, reload module, create config_dir, yield."""
     test_home = tmp_path / "fake_home"
-    monkeypatch.setenv("HOME", str(test_home))
+
+    def fake_home(cls):
+        return test_home
+
+    monkeypatch.setattr(pathlib.Path, "home", fake_home)
     importlib.reload(config_mod)
-    config_dir = config_mod.DEFAULT_CONFIG_DIR  # Now uses fake HOME
+    config_dir = config_mod.DEFAULT_CONFIG_DIR  # Uses patched Path.home()
     config_dir.mkdir(parents=True, exist_ok=True)
     yield config_dir
     importlib.reload(config_mod)  # Reset for next test

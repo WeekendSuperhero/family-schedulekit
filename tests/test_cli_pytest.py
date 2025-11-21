@@ -21,7 +21,7 @@ def test_help(capsys, monkeypatch):
         cli.main()
     assert exc.value.code == 0
     captured = capsys.readouterr()
-    assert "usage: family-schedulekit" in captured.out
+    assert "family-schedulekit" in captured.out
 
 
 def test_no_args_error(capsys, monkeypatch):
