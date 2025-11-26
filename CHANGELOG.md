@@ -37,6 +37,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Gradient handoff visualization**: PNG exports now display smooth color gradients for special handoffs with time information
+  - Gradients show custody transition visually (e.g., guardian_2 color → guardian_1 color completing at handoff time)
+  - 2-hour gradient window before handoff time for clear visualization
+  - Automatically enabled when `config` is passed to `render_schedule_image()`
+  - Only appears when special handoff conditions are met (resolver adds description to record)
+- Comprehensive tests for gradient handoff feature
+
+### Changed
+
+- `render_schedule_image()` now accepts optional `config` parameter for gradient rendering
+- Exporter automatically passes config to enable gradient feature in CLI exports
+
 ### Planned
 
 - Additional export formats (iCal, CSV)
