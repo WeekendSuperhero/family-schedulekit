@@ -1,6 +1,6 @@
 from datetime import date
 
-from family_schedulekit import ScheduleConfigModel, load_default_config, render_schedule_image
+from family_schedulekit import load_default_config, render_schedule_image
 from family_schedulekit.exporter import ExportPlan, resolve_range, write_exports
 from family_schedulekit.visualizer import _get_handoff_info_from_config, _parse_handoff_time
 
