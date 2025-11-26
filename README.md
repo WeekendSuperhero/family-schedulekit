@@ -368,6 +368,65 @@ handoff:
         minute: 0
 ```
 
+### Gradient Handoff Visualization
+
+When exporting PNG calendars, special handoffs with time information are rendered as **gradients** to visually show the custody transition:
+
+**How It Works:**
+
+For a handoff configured to complete at 1PM (13:00):
+
+```yaml
+special_handoffs:
+  sunday:
+    from_guardian: guardian_2
+    to_guardian: guardian_1
+    time:
+      hour: 13
+      minute: 0
+      by: true
+    description: guardian_2_to_guardian_1_by_1pm
+```
+
+**Visual Result in PNG:**
+
+- **Top section** (midnight to 11AM): Solid `from_guardian` color - they have custody in the morning
+- **Gradient section** (11AM to 1PM): Smooth color transition - handoff is happening
+- **Bottom section** (1PM to midnight): Solid `to_guardian` color - handoff complete
+
+**Key Features:**
+
+- Gradients only appear when the special handoff applies (resolver adds the description to the record)
+- 2-hour gradient window before the handoff time for visual clarity
+- Clear visual indication of who has custody before and after the handoff
+- Works automatically when `config` is passed to `render_schedule_image()`
+
+**Example:**
+
+```python
+from family_schedulekit import ScheduleConfigModel, render_schedule_image
+from family_schedulekit.exporter import resolve_range
+from datetime import date
+from pathlib import Path
+
+config = ScheduleConfigModel(**config_data)
+records = resolve_range(date(2025, 2, 17), weeks=4, cfg=config)
+
+render_schedule_image(
+    records=records,
+    start=date(2025, 2, 17),
+    weeks=4,
+    out_path=Path("schedule.png"),
+    config=config,  # Pass config to enable gradient feature
+)
+```
+
+The CLI automatically enables gradients when using the `--config` option:
+
+```bash
+family-schedulekit export --start 2025-02-17 --weeks 4 --formats png --config my-schedule.yaml
+```
+
 ### Visualization Colors
 
 Customize PNG calendar colors using any of the **147 CSS3 color names** or hex strings:

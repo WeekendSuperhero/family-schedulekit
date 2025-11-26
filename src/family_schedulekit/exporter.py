@@ -269,7 +269,9 @@ def write_exports(plan: ExportPlan, cfg: ScheduleConfigModel, start_weekday_over
             "guardian_2": cfg.parties.guardian_2,
         }
 
-        render_schedule_image(records_with_names, plan.start, plan.weeks, png_path, palette=palette, start_weekday=start_weekday, guardian_names=guardian_names)
+        render_schedule_image(
+            records_with_names, plan.start, plan.weeks, png_path, palette=palette, start_weekday=start_weekday, guardian_names=guardian_names, config=cfg
+        )
         paths["png"] = png_path
 
     return paths

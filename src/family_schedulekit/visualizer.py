@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import webcolors
 
@@ -11,6 +12,12 @@ except ImportError:  # pragma: no cover - fallback evaluated at runtime
     Image = ImageDraw = ImageFont = None  # type: ignore[assignment]
 
 from .models import Weekday
+
+if TYPE_CHECKING:
+    from PIL import ImageDraw as ImageDrawModule
+    from PIL import ImageFont as ImageFontModule
+
+    from .models import ScheduleConfigModel
 
 type DayRecord = dict[str, object]
 type Palette = dict[str, tuple[int, int, int]]
@@ -104,6 +111,180 @@ def _adjust_color_brightness(color: tuple[int, int, int], percent: int, lighten:
     return (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
 
 
+def _parse_handoff_time(handoff: str) -> float | None:
+    """
+    Extract the hour from a handoff description.
+
+    Args:
+        handoff: Handoff string (e.g., "guardian_2_to_guardian_1_by_1pm" or "guardian_2_to_guardian_1_by_13:00")
+
+    Returns:
+        Hour as float (0-24) or None if no time found
+    """
+    import re
+
+    # Try to find time patterns like "1pm", "1:00pm", "13:00", "by_1pm", etc.
+    # Pattern 1: "by_13:00" or similar 24-hour format
+    match = re.search(r"by[_\s]?(\d{1,2}):(\d{2})", handoff, re.IGNORECASE)
+    if match:
+        hour = int(match.group(1))
+        minute = int(match.group(2))
+        return hour + minute / 60.0
+
+    # Pattern 2: "by_1pm" or "by 1pm" - 12-hour format
+    match = re.search(r"by[_\s]?(\d{1,2})\s?(am|pm)", handoff, re.IGNORECASE)
+    if match:
+        hour = int(match.group(1))
+        am_pm = match.group(2).lower()
+        if am_pm == "pm" and hour != 12:
+            hour += 12
+        elif am_pm == "am" and hour == 12:
+            hour = 0
+        return float(hour)
+
+    # Pattern 3: Just "1pm" without "by"
+    match = re.search(r"(\d{1,2})\s?(am|pm)", handoff, re.IGNORECASE)
+    if match:
+        hour = int(match.group(1))
+        am_pm = match.group(2).lower()
+        if am_pm == "pm" and hour != 12:
+            hour += 12
+        elif am_pm == "am" and hour == 12:
+            hour = 0
+        return float(hour)
+
+    # Pattern 4: 24-hour format like "13:00"
+    match = re.search(r"(\d{1,2}):(\d{2})", handoff)
+    if match:
+        hour = int(match.group(1))
+        minute = int(match.group(2))
+        return hour + minute / 60.0
+
+    return None
+
+
+def _extract_guardians_from_handoff(handoff: str) -> tuple[str, str] | None:
+    """
+    Extract from_guardian and to_guardian from handoff description.
+
+    Args:
+        handoff: Handoff string like "guardian_2_to_guardian_1_by_1pm"
+
+    Returns:
+        Tuple of (from_guardian, to_guardian) or None if not found
+    """
+    import re
+
+    # Pattern: "guardian_X_to_guardian_Y"
+    match = re.search(r"(guardian_[12])_to_(guardian_[12])", handoff)
+    if match:
+        return (match.group(1), match.group(2))
+
+    return None
+
+
+def _get_handoff_info_from_config(
+    record: DayRecord,
+    config: ScheduleConfigModel | None,
+) -> tuple[str, str, float] | None:
+    """
+    Get handoff information from config using the structured HandoffTime.
+    Only returns handoff info if the special handoff description is present in the record
+    (which the resolver only adds when the handoff conditions are actually met).
+
+    Args:
+        record: Day record from resolve_range
+        config: Schedule configuration
+
+    Returns:
+        Tuple of (from_guardian, to_guardian, hour_as_float) or None if no special handoff applies
+    """
+    if not config or not record:
+        return None
+
+    handoff_str = str(record.get("handoff", ""))
+    if not handoff_str or handoff_str == "school":
+        return None
+
+    # Try to get weekday from record
+    weekday_str = str(record.get("weekday", ""))
+    if not weekday_str:
+        return None
+
+    try:
+        weekday = Weekday(weekday_str.lower())
+    except ValueError:
+        return None
+
+    # Check if there's a special handoff configured for this weekday
+    if weekday in config.handoff.special_handoffs:
+        special = config.handoff.special_handoffs[weekday]
+
+        # Check if this specific handoff description is in the record
+        # The resolver only adds the special handoff description when the conditions are met
+        # (i.e., when there's an actual custody transition matching the special handoff rules)
+        if special.description and special.description in handoff_str:
+            # This special handoff applies to this day - show gradient
+            hour = special.time.hour + special.time.minute / 60.0
+            return (special.from_guardian, special.to_guardian, hour)
+
+    return None
+
+
+def _draw_gradient_cell(
+    draw: ImageDrawModule.ImageDraw,
+    rect: tuple[int, int, int, int],
+    color1: tuple[int, int, int],
+    color2: tuple[int, int, int],
+    transition_hour: float,
+) -> None:
+    """
+    Draw a vertical gradient from color1 to color2 completing BY the specified hour.
+
+    Args:
+        draw: ImageDraw object
+        rect: (x0, y0, x1, y1) rectangle bounds
+        color1: RGB tuple for the starting color (morning guardian)
+        color2: RGB tuple for the ending color (after handoff guardian)
+        transition_hour: Hour when handoff completes and color2 is fully visible (0-24, can be fractional)
+    """
+    x0, y0, x1, y1 = rect
+    height = y1 - y0
+
+    # Calculate the pixel position where the transition should be complete
+    # Assume day runs from 0:00 (top) to 24:00 (bottom)
+    handoff_position = transition_hour / 24.0
+    handoff_y = int(y0 + height * handoff_position)
+
+    # Define gradient window - transition happens in the hour(s) before handoff
+    # For a smooth gradient, let's use 2 hours before the handoff time
+    gradient_hours = 2.0
+    gradient_start_hour = max(0, transition_hour - gradient_hours)
+    gradient_start_position = gradient_start_hour / 24.0
+    gradient_start_y = int(y0 + height * gradient_start_position)
+
+    # Draw the gradient in horizontal strips
+    for y in range(y0, y1):
+        if y < gradient_start_y:
+            # Before gradient starts - solid color1 (first guardian)
+            color = color1
+        elif y < handoff_y:
+            # During gradient - blend from color1 to color2
+            progress = (y - gradient_start_y) / max(1, handoff_y - gradient_start_y)
+            r = int(color1[0] * (1 - progress) + color2[0] * progress)
+            g = int(color1[1] * (1 - progress) + color2[1] * progress)
+            b = int(color1[2] * (1 - progress) + color2[2] * progress)
+            color = (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
+        else:
+            # After handoff time - solid color2 (second guardian)
+            color = color2
+
+        draw.line([(x0, y), (x1, y)], fill=color)
+
+    # Draw border
+    draw.rectangle(rect, outline="black", width=3, fill=None)
+
+
 def render_schedule_image(
     records: list[DayRecord],
     start: date,
@@ -112,9 +293,14 @@ def render_schedule_image(
     palette: dict[str, str | tuple[int, int, int] | int] | None = None,
     start_weekday: str = "monday",
     guardian_names: dict[str, str] | None = None,
+    config: ScheduleConfigModel | None = None,
 ) -> Path:
     """
     Render a PNG snapshot of the schedule over a given range.
+
+    When config is provided, special handoffs with time information are rendered as gradients
+    showing the custody transition visually (e.g., guardian_2 color gradually transitioning to
+    guardian_1 color, completing at the handoff time).
 
     Args:
         records: Consecutive day records as produced by `resolve_range`
@@ -124,6 +310,8 @@ def render_schedule_image(
         palette: Optional mapping of guardian -> hex color (e.g. {"guardian_1": "#F28B82"})
         start_weekday: First day of week in visualization ("monday" or "sunday", default: "monday")
         guardian_names: Optional mapping of guardian_1/guardian_2 to actual names (e.g. {"guardian_1": "Jane", "guardian_2": "John"})
+        config: Optional ScheduleConfigModel for accessing handoff time information for gradient rendering.
+                When provided, days with special handoffs will show color gradients completing at the handoff time.
 
     Returns:
         Path to the written PNG file.
@@ -210,9 +398,9 @@ def render_schedule_image(
     if loaded_font:
         try:
             # Bold fonts for readability
-            header_font: ImageFont.ImageFont | ImageFont.FreeTypeFont = ImageFont.truetype(loaded_font, 30)
-            cell_font: ImageFont.ImageFont | ImageFont.FreeTypeFont = ImageFont.truetype(loaded_font, 20)
-            legend_font: ImageFont.ImageFont | ImageFont.FreeTypeFont = ImageFont.truetype(loaded_font, 24)
+            header_font: ImageFontModule.ImageFont | ImageFontModule.FreeTypeFont = ImageFont.truetype(loaded_font, 30)
+            cell_font: ImageFontModule.ImageFont | ImageFontModule.FreeTypeFont = ImageFont.truetype(loaded_font, 20)
+            legend_font: ImageFontModule.ImageFont | ImageFontModule.FreeTypeFont = ImageFont.truetype(loaded_font, 24)
         except OSError:
             header_font = ImageFont.load_default()
             cell_font = ImageFont.load_default()
@@ -224,7 +412,7 @@ def render_schedule_image(
 
     record_index = _build_index(records, start, start_weekday.lower() == "sunday")
 
-    def _font_bbox(font: ImageFont.ImageFont | ImageFont.FreeTypeFont, text: str) -> tuple[int, int, int, int]:
+    def _font_bbox(font: ImageFontModule.ImageFont | ImageFontModule.FreeTypeFont, text: str) -> tuple[int, int, int, int]:
         try:
             bbox = font.getbbox(text)
             return (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))
@@ -232,13 +420,13 @@ def render_schedule_image(
             # Fallback for older Pillow versions
             return (0, 0, 10, 10)
 
-    def _draw_text_center(text: str, x: int, y: int, font: ImageFont.ImageFont | ImageFont.FreeTypeFont):
+    def _draw_text_center(text: str, x: int, y: int, font: ImageFontModule.ImageFont | ImageFontModule.FreeTypeFont):
         bbox = _font_bbox(font, text)
         tw = bbox[2] - bbox[0]
         th = bbox[3] - bbox[1]
         draw.text((x - tw // 2, y - th // 2), text, fill="black", font=font)
 
-    def _line_height(font: ImageFont.ImageFont | ImageFont.FreeTypeFont) -> int:
+    def _line_height(font: ImageFontModule.ImageFont | ImageFontModule.FreeTypeFont) -> int:
         bbox = _font_bbox(font, "Hg")
         return bbox[3] - bbox[1]
 
@@ -290,13 +478,46 @@ def render_schedule_image(
                 else:
                     color = base_color
 
-            draw.rectangle(rect, fill=color, outline="black", width=3)
+            # Check if this day has a handoff with time information
+            # Priority 1: Use structured handoff info from config
+            handoff_info = _get_handoff_info_from_config(record, config) if record else None
+
+            # Priority 2: Fall back to parsing handoff string (for backward compatibility)
+            if handoff_info is None and record:
+                handoff_str = str(record.get("handoff", ""))
+                if handoff_str and handoff_str != "school":
+                    handoff_time = _parse_handoff_time(handoff_str)
+                    handoff_guardians = _extract_guardians_from_handoff(handoff_str)
+                    if handoff_time is not None and handoff_guardians is not None:
+                        handoff_info = (handoff_guardians[0], handoff_guardians[1], handoff_time)
+
+            if handoff_info is not None:
+                # Draw gradient from one guardian's color to another
+                from_guardian, to_guardian, handoff_hour = handoff_info
+                from_color = colors.get(from_guardian, colors["unknown"])
+                to_color = colors.get(to_guardian, colors["unknown"])
+                _draw_gradient_cell(draw, rect, from_color, to_color, handoff_hour)
+            else:
+                # Draw solid color rectangle
+                draw.rectangle(rect, fill=color, outline="black", width=3)
 
             if not record:
                 continue
 
             # Determine text color based on background color for accessibility
-            text_color = _get_text_color(color)
+            # For gradient cells, use the average color to determine text color
+            if handoff_info is not None:
+                from_guardian, to_guardian, _ = handoff_info
+                from_color = colors.get(from_guardian, colors["unknown"])
+                to_color = colors.get(to_guardian, colors["unknown"])
+                avg_color = (
+                    (from_color[0] + to_color[0]) // 2,
+                    (from_color[1] + to_color[1]) // 2,
+                    (from_color[2] + to_color[2]) // 2,
+                )
+                text_color = _get_text_color(avg_color)
+            else:
+                text_color = _get_text_color(color)
 
             # Center text in cell
             cell_center_x = x0 + cell_w // 2
