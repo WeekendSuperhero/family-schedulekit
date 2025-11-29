@@ -23,14 +23,16 @@ def test_weekend_even_cw6():
     res = resolve_for_date(date(2025, 2, 8), CFG)  # Saturday CW6 (even week)
     assert res["guardian"] == "guardian_2" and res["handoff"] is None
     res = resolve_for_date(date(2025, 2, 9), CFG)  # Sunday CW6 (even week, CW6%4==2, so otherwise applies)
-    assert res["guardian"] == "guardian_1" and res["handoff"] == "school"
+    # Sunday is guardian_1 (to_guardian), so special mid-day handoff applies
+    assert res["guardian"] == "guardian_1" and res["handoff"] == "guardian_2_to_guardian_1_by_1pm"
 
 
 def test_weekend_even_cw8_sunday_exception():
     res = resolve_for_date(date(2025, 2, 21), CFG)  # Friday CW8 (even week, Thu is guardian_1, Fri is guardian_2)
     assert res["guardian"] == "guardian_2" and res["handoff"] == "school"
     res = resolve_for_date(date(2025, 2, 23), CFG)  # Sunday CW8 (even week, CW8%4==0, so modulo rule applies)
-    assert res["guardian"] == "guardian_2" and res["handoff"] == "guardian_2_to_guardian_1_by_1pm"
+    # Sunday is guardian_2 (from_guardian), so special handoff does NOT apply
+    assert res["guardian"] == "guardian_2" and res["handoff"] is None
 
 
 def test_odd_week_full_guardian_1():
