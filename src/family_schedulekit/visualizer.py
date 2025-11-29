@@ -220,10 +220,10 @@ def _get_handoff_info_from_config(
     if weekday in config.handoff.special_handoffs:
         special = config.handoff.special_handoffs[weekday]
 
-        # Check if this specific handoff description is in the record
-        # The resolver only adds the special handoff description when the conditions are met
-        # (i.e., when there's an actual custody transition matching the special handoff rules)
-        if special.description and special.description in handoff_str:
+        # CRITICAL: Only show gradient if the special handoff description is EXACTLY in the record
+        # The resolver only adds this description when there's an actual custody transition
+        # from special.from_guardian to special.to_guardian (not just on modulo days)
+        if special.description and special.description == handoff_str:
             # This special handoff applies to this day - show gradient
             hour = special.time.hour + special.time.minute / 60.0
             return (special.from_guardian, special.to_guardian, hour)

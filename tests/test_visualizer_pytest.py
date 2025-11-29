@@ -32,8 +32,8 @@ def test_gradient_handoff_with_config(tmp_path):
     cfg = load_default_config()
 
     # Find a date range that includes a Sunday with special handoff
-    # CW8 2025 is even week, Sunday Feb 23 should have the special handoff
-    start = date(2025, 2, 17)  # Monday of CW8
+    # CW6 2025: Sunday Feb 9 is guardian_1 (to_guardian), so special handoff applies
+    start = date(2025, 2, 3)  # Monday of CW6
     records = resolve_range(start, 2, cfg)
     out = tmp_path / "gradient_schedule.png"
 
@@ -44,7 +44,7 @@ def test_gradient_handoff_with_config(tmp_path):
     assert out.stat().st_size > 0
 
     # Verify that the handoff info is extracted correctly for the Sunday record
-    sunday_record = next(r for r in records if r.get("weekday") == "sunday" and r.get("date") == "2025-02-23")
+    sunday_record = next(r for r in records if r.get("weekday") == "sunday" and r.get("date") == "2025-02-09")
     handoff_info = _get_handoff_info_from_config(sunday_record, cfg)
 
     # Should return gradient info for this Sunday (guardian_2 -> guardian_1 at 1pm)
@@ -73,11 +73,11 @@ def test_get_handoff_info_from_config():
     """Test the handoff info extraction from config."""
     cfg = load_default_config()
 
-    # Test record with special handoff
+    # Test record with special handoff (mid-day transition, ends with to_guardian)
     record_with_handoff = {
-        "date": "2025-02-23",
+        "date": "2025-02-09",
         "weekday": "sunday",
-        "guardian": "guardian_2",
+        "guardian": "guardian_1",  # to_guardian (ends day with custody)
         "handoff": "guardian_2_to_guardian_1_by_1pm",
     }
 

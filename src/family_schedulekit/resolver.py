@@ -89,20 +89,21 @@ def resolve_for_date(dt: date, cfg: ScheduleConfigModel, _check_handoff: bool = 
             handoff = cfg.handoff.default_location
 
     # Apply special handoff rules if configured for this weekday
-    # Special handoffs only apply when there's a custody change from one guardian to another
+    # Special handoffs represent mid-day transitions (e.g., from_guardian has custody in morning,
+    # hands off to to_guardian by specified time, and to_guardian has custody for rest of day)
     if _check_handoff and day in cfg.handoff.special_handoffs:
         special = cfg.handoff.special_handoffs[day]
         # Only apply if:
-        # 1. Current guardian matches "from_guardian"
-        # 2. There's an actual custody transition (from != to)
-        # 3. The next guardian would be different
-        if guardian == special.from_guardian and special.from_guardian != special.to_guardian:
-            # Check what happens the next day to see if it's actually a transition
-            next_day = dt + timedelta(days=1)
-            next_result = resolve_for_date(next_day, cfg, _check_handoff=False)
+        # 1. Current day guardian matches "to_guardian" (who ends up with custody for the day)
+        # 2. Previous day guardian matches "from_guardian" (actual custody change occurred)
+        # 3. There's an actual custody transition (from != to)
+        # This represents a day where from_guardian has morning custody and hands off during the day
+        if guardian == special.to_guardian and special.from_guardian != special.to_guardian:
+            # Check that previous day actually had from_guardian
+            yesterday = dt - timedelta(days=1)
+            yesterday_result = resolve_for_date(yesterday, cfg, _check_handoff=False)
 
-            # Only apply handoff if next day's guardian matches our "to_guardian"
-            if next_result["guardian"] == special.to_guardian:
+            if yesterday_result["guardian"] == special.from_guardian:
                 if special.description:
                     handoff = special.description
                 else:
